@@ -8,11 +8,12 @@ import java.util.UUID;
 
 public record EndpointYaniti(UUID id, UUID uygulamaId, String url, String[] olayFiltresi, DevreDurumu devreDurumu,
                               RetryProfili retryProfili, int ardisikHataSayisi, Double basariOraniSon24Saat,
-                              Instant olusturulma) {
+                              Integer hizSiniriSn, Instant olusturulma) {
 
     public static EndpointYaniti of(Endpoint endpoint, Double basariOraniSon24Saat) {
         return new EndpointYaniti(endpoint.getId(), endpoint.getUygulamaId(), endpoint.getUrl(),
                 endpoint.getOlayFiltresi(), endpoint.getDevreDurumu(), endpoint.getRetryProfili(),
-                endpoint.getArdisikHataSayisi(), basariOraniSon24Saat, endpoint.getOlusturulma());
+                endpoint.getArdisikHataSayisi(), basariOraniSon24Saat, endpoint.getHizSiniriSn(),
+                endpoint.getOlusturulma());
     }
 }

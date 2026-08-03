@@ -20,13 +20,22 @@ public class Organizasyon {
     @Column(nullable = false)
     private Instant olusturulma;
 
+    /** Aylik teslimat kotasi (bkz Faz 4.2) - plan-bazli kademeleme yerine dogrudan sayi. */
+    @Column(name = "aylik_kota", nullable = false)
+    private int aylikKota;
+
     protected Organizasyon() {
     }
 
     public Organizasyon(String ad) {
+        this(ad, 10000);
+    }
+
+    public Organizasyon(String ad, int aylikKota) {
         this.id = UUID.randomUUID();
         this.ad = ad;
         this.olusturulma = Instant.now();
+        this.aylikKota = aylikKota;
     }
 
     public UUID getId() {
@@ -39,5 +48,9 @@ public class Organizasyon {
 
     public Instant getOlusturulma() {
         return olusturulma;
+    }
+
+    public int getAylikKota() {
+        return aylikKota;
     }
 }

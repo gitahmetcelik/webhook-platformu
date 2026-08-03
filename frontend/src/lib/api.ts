@@ -1,7 +1,13 @@
+import { apiAnahtariniOku, apiAnahtariniTemizle } from "./auth";
 import type {
+  ApiAnahtari,
+  ApiAnahtariUretimYaniti,
+  AuditKaydi,
   Endpoint,
   EndpointOlusturmaYaniti,
+  KullanimGunluk,
   OlayOzeti,
+  OrganizasyonBen,
   RetryProfili,
   Sayfa,
   TeslimatDetay,
@@ -12,13 +18,22 @@ import type {
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
 async function istek<T>(yol: string, secenekler?: RequestInit): Promise<T> {
+  const anahtar = apiAnahtariniOku();
   const yanit = await fetch(`${API_URL}${yol}`, {
     ...secenekler,
     headers: {
       "Content-Type": "application/json",
+      ...(anahtar ? { Authorization: `Bearer ${anahtar}` } : {}),
       ...secenekler?.headers,
     },
   });
+  if (yanit.status === 401) {
+    apiAnahtariniTemizle();
+    if (typeof window !== "undefined" && window.location.pathname !== "/giris") {
+      window.location.href = "/giris";
+    }
+    throw new Error("Yetkisiz - API anahtari gecersiz veya eksik");
+  }
   if (!yanit.ok) {
     const govde = await yanit.text().catch(() => "");
     throw new Error(`API hatasi (${yanit.status}): ${govde || yanit.statusText}`);
@@ -38,6 +53,24 @@ function sorguDizesi(params: Record<string, string | number | undefined>): strin
 }
 
 export const api = {
+  organizasyon: {
+    ben: () => istek<OrganizasyonBen>("/v1/organizasyon/ben"),
+    apiAnahtarlariListele: () => istek<ApiAnahtari[]>("/v1/organizasyon/api-anahtarlari"),
+    apiAnahtariUret: () =>
+      istek<ApiAnahtariUretimYaniti>("/v1/organizasyon/api-anahtarlari", { method: "POST" }),
+    apiAnahtariIptalEt: (id: string) =>
+      istek<void>(`/v1/organizasyon/api-anahtarlari/${id}/iptal`, { method: "POST" }),
+  },
+
+  kullanim: {
+    listele: () => istek<KullanimGunluk[]>("/v1/kullanim"),
+  },
+
+  audit: {
+    listele: (params: { sayfa?: number; boyut?: number } = {}) =>
+      istek<Sayfa<AuditKaydi>>(`/v1/audit${sorguDizesi({ page: params.sayfa, size: params.boyut })}`),
+  },
+
   uygulamalar: {
     listele: () => istek<Uygulama[]>("/v1/uygulamalar"),
   },

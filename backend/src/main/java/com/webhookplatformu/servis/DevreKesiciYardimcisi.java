@@ -2,8 +2,10 @@ package com.webhookplatformu.servis;
 
 import com.webhookplatformu.depo.AuditKaydiRepository;
 import com.webhookplatformu.depo.EndpointRepository;
+import com.webhookplatformu.depo.UygulamaRepository;
 import com.webhookplatformu.varlik.AuditKaydi;
 import com.webhookplatformu.varlik.Endpoint;
+import com.webhookplatformu.varlik.Uygulama;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -19,10 +21,13 @@ public class DevreKesiciYardimcisi {
     private static final Logger log = LoggerFactory.getLogger(DevreKesiciYardimcisi.class);
 
     private final EndpointRepository endpointRepository;
+    private final UygulamaRepository uygulamaRepository;
     private final AuditKaydiRepository auditKaydiRepository;
 
-    public DevreKesiciYardimcisi(EndpointRepository endpointRepository, AuditKaydiRepository auditKaydiRepository) {
+    public DevreKesiciYardimcisi(EndpointRepository endpointRepository, UygulamaRepository uygulamaRepository,
+                                  AuditKaydiRepository auditKaydiRepository) {
         this.endpointRepository = endpointRepository;
+        this.uygulamaRepository = uygulamaRepository;
         this.auditKaydiRepository = auditKaydiRepository;
     }
 
@@ -31,7 +36,8 @@ public class DevreKesiciYardimcisi {
         endpointRepository.save(endpoint);
         if (devreYeniAcildi) {
             log.warn("Endpoint devresi acildi (ardisik hata esigi asildi): {}", endpoint.getId());
-            auditKaydiRepository.save(new AuditKaydi("DEVRE_ACILDI", endpoint.getId(),
+            Uygulama uygulama = uygulamaRepository.findById(endpoint.getUygulamaId()).orElseThrow();
+            auditKaydiRepository.save(new AuditKaydi(uygulama.getOrganizasyonId(), "DEVRE_ACILDI", endpoint.getId(),
                     "ardisik_hata_sayisi=" + endpoint.getArdisikHataSayisi()));
         }
     }

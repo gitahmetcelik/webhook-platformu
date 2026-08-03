@@ -7,6 +7,7 @@ import com.webhookplatformu.depo.OlayRepository;
 import com.webhookplatformu.depo.TeslimatDenemesiRepository;
 import com.webhookplatformu.depo.TeslimatRepository;
 import com.webhookplatformu.servis.DevreKesiciYardimcisi;
+import com.webhookplatformu.servis.KullanimSayaciServisi;
 import com.webhookplatformu.servis.TeslimatGonderimYardimcisi;
 import com.webhookplatformu.servis.TeslimatGonderimYardimcisi.Sonuc;
 import com.webhookplatformu.varlik.Endpoint;
@@ -37,18 +38,21 @@ public abstract class TeslimatHandlerTemel implements GorevHandler<TeslimatPaylo
     private final OlayRepository olayRepository;
     private final TeslimatGonderimYardimcisi gonderimYardimcisi;
     private final DevreKesiciYardimcisi devreKesiciYardimcisi;
+    private final KullanimSayaciServisi kullanimSayaciServisi;
 
     protected TeslimatHandlerTemel(TeslimatRepository teslimatRepository,
                                     TeslimatDenemesiRepository teslimatDenemesiRepository,
                                     EndpointRepository endpointRepository, OlayRepository olayRepository,
                                     TeslimatGonderimYardimcisi gonderimYardimcisi,
-                                    DevreKesiciYardimcisi devreKesiciYardimcisi) {
+                                    DevreKesiciYardimcisi devreKesiciYardimcisi,
+                                    KullanimSayaciServisi kullanimSayaciServisi) {
         this.teslimatRepository = teslimatRepository;
         this.teslimatDenemesiRepository = teslimatDenemesiRepository;
         this.endpointRepository = endpointRepository;
         this.olayRepository = olayRepository;
         this.gonderimYardimcisi = gonderimYardimcisi;
         this.devreKesiciYardimcisi = devreKesiciYardimcisi;
+        this.kullanimSayaciServisi = kullanimSayaciServisi;
     }
 
     @Override
@@ -74,6 +78,7 @@ public abstract class TeslimatHandlerTemel implements GorevHandler<TeslimatPaylo
                 teslimatRepository.save(teslimat);
                 endpoint.ardisikHataSifirla();
                 endpointRepository.save(endpoint);
+                kullanimSayaciServisi.artir(teslimat.getOrganizasyonId(), true);
                 yield null;
             }
             case KALICI_HATA -> {
@@ -82,6 +87,7 @@ public abstract class TeslimatHandlerTemel implements GorevHandler<TeslimatPaylo
                 teslimat.durumGuncelle(TeslimatDurumu.KALICI_HATA);
                 teslimatRepository.save(teslimat);
                 devreKesiciYardimcisi.kaliciBasarisizlikBildir(endpoint);
+                kullanimSayaciServisi.artir(teslimat.getOrganizasyonId(), false);
                 yield null;
             }
             case GECICI_HATA -> {

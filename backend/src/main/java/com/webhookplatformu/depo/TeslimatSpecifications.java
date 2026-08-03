@@ -15,10 +15,12 @@ public final class TeslimatSpecifications {
     private TeslimatSpecifications() {
     }
 
-    public static Specification<Teslimat> filtrele(TeslimatDurumu durum, UUID endpointId, Instant baslangic,
-                                                     Instant bitis) {
+    public static Specification<Teslimat> filtrele(UUID organizasyonId, TeslimatDurumu durum, UUID endpointId,
+                                                     Instant baslangic, Instant bitis) {
         return (root, query, cb) -> {
             List<Predicate> kosullar = new ArrayList<>();
+            // organizasyonId her zaman zorunlu - kiracı izolasyonu (bkz Faz 4.1).
+            kosullar.add(cb.equal(root.get("organizasyonId"), organizasyonId));
             if (durum != null) {
                 kosullar.add(cb.equal(root.get("durum"), durum));
             }

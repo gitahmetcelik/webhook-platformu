@@ -15,6 +15,7 @@ import com.webhookplatformu.varlik.Endpoint;
 import com.webhookplatformu.varlik.Olay;
 import com.webhookplatformu.varlik.Teslimat;
 import com.webhookplatformu.varlik.TeslimatDurumu;
+import com.webhookplatformu.yapilandirma.OrganizasyonBaglami;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -40,17 +41,20 @@ public class TeslimatController {
     private final EndpointRepository endpointRepository;
     private final GorevYonetimServisi gorevYonetimServisi;
     private final TeslimatServisi teslimatServisi;
+    private final OrganizasyonBaglami organizasyonBaglami;
 
     public TeslimatController(TeslimatRepository teslimatRepository,
                                TeslimatDenemesiRepository teslimatDenemesiRepository,
                                OlayRepository olayRepository, EndpointRepository endpointRepository,
-                               GorevYonetimServisi gorevYonetimServisi, TeslimatServisi teslimatServisi) {
+                               GorevYonetimServisi gorevYonetimServisi, TeslimatServisi teslimatServisi,
+                               OrganizasyonBaglami organizasyonBaglami) {
         this.teslimatRepository = teslimatRepository;
         this.teslimatDenemesiRepository = teslimatDenemesiRepository;
         this.olayRepository = olayRepository;
         this.endpointRepository = endpointRepository;
         this.gorevYonetimServisi = gorevYonetimServisi;
         this.teslimatServisi = teslimatServisi;
+        this.organizasyonBaglami = organizasyonBaglami;
     }
 
     @GetMapping
@@ -59,14 +63,15 @@ public class TeslimatController {
                                               @RequestParam(required = false) Instant baslangic,
                                               @RequestParam(required = false) Instant bitis,
                                               Pageable pageable) {
-        return teslimatRepository.findAll(TeslimatSpecifications.filtrele(durum, endpointId, baslangic, bitis), pageable)
+        UUID organizasyonId = organizasyonBaglami.getOrganizasyonId();
+        return teslimatRepository.findAll(
+                        TeslimatSpecifications.filtrele(organizasyonId, durum, endpointId, baslangic, bitis), pageable)
                 .map(TeslimatOzetiYaniti::of);
     }
 
     @GetMapping("/{id}")
     public TeslimatDetayYaniti detay(@PathVariable UUID id) {
-        Teslimat teslimat = teslimatRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Teslimat bulunamadi: " + id));
+        Teslimat teslimat = teslimatDogrula(id);
         Olay olay = olayRepository.findById(teslimat.getOlayId()).orElseThrow();
         Endpoint endpoint = endpointRepository.findById(teslimat.getEndpointId()).orElseThrow();
 
@@ -84,7 +89,18 @@ public class TeslimatController {
 
     @PostMapping("/{id}/yeniden-gonder")
     public ResponseEntity<TeslimatOzetiYaniti> yenidenGonder(@PathVariable UUID id) {
+        teslimatDogrula(id);
         Teslimat yeniTeslimat = teslimatServisi.yenidenGonder(id);
         return ResponseEntity.status(HttpStatus.CREATED).body(TeslimatOzetiYaniti.of(yeniTeslimat));
+    }
+
+    private Teslimat teslimatDogrula(UUID id) {
+        Teslimat teslimat = teslimatRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Teslimat bulunamadi: " + id));
+        if (!teslimat.getOrganizasyonId().equals(organizasyonBaglami.getOrganizasyonId())) {
+            // 403 degil 404 - varlik sizdirmamak icin (bkz Faz 4.6 kapi testi 2. adim).
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Teslimat bulunamadi: " + id);
+        }
+        return teslimat;
     }
 }

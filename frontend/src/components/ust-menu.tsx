@@ -3,15 +3,24 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/components/auth-provider";
+import { Button } from "@/components/ui/button";
 
 const baglantilar = [
   { href: "/olaylar", etiket: "Olaylar" },
   { href: "/endpointler", etiket: "Endpoint'ler" },
   { href: "/test", etiket: "Test Aracı" },
+  { href: "/kullanim", etiket: "Kullanım" },
+  { href: "/audit", etiket: "Audit" },
 ];
 
 export function UstMenu() {
   const yol = usePathname();
+  const { organizasyon, cikisYap } = useAuth();
+
+  if (yol === "/giris") {
+    return null;
+  }
 
   return (
     <header className="border-b bg-background">
@@ -31,6 +40,12 @@ export function UstMenu() {
             </Link>
           ))}
         </nav>
+        <div className="ml-auto flex items-center gap-3">
+          {organizasyon && <span className="text-sm text-muted-foreground">{organizasyon.ad}</span>}
+          <Button variant="outline" size="sm" onClick={cikisYap}>
+            Çıkış
+          </Button>
+        </div>
       </div>
     </header>
   );

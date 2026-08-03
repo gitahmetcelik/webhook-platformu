@@ -19,6 +19,10 @@ public class Olay {
     @Column(name = "uygulama_id", nullable = false)
     private UUID uygulamaId;
 
+    /** Denormalize edildi (bkz Faz 4 planlama notu) - org-scoped sorgular icin JOIN gerektirmez. */
+    @Column(name = "organizasyon_id", nullable = false)
+    private UUID organizasyonId;
+
     @Column(nullable = false)
     private String tip;
 
@@ -35,9 +39,10 @@ public class Olay {
     protected Olay() {
     }
 
-    public Olay(UUID uygulamaId, String tip, String payload, String disKaynakId) {
+    public Olay(UUID uygulamaId, UUID organizasyonId, String tip, String payload, String disKaynakId) {
         this.id = UUID.randomUUID();
         this.uygulamaId = uygulamaId;
+        this.organizasyonId = organizasyonId;
         this.tip = tip;
         this.payload = payload;
         this.disKaynakId = disKaynakId;
@@ -50,6 +55,10 @@ public class Olay {
 
     public UUID getUygulamaId() {
         return uygulamaId;
+    }
+
+    public UUID getOrganizasyonId() {
+        return organizasyonId;
     }
 
     public String getTip() {

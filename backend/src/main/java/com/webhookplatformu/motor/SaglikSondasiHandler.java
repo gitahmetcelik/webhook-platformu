@@ -97,7 +97,8 @@ public class SaglikSondasiHandler implements GorevHandler<SaglikSondasiPayload> 
 
             endpoint.devreyiKapat();
             endpointRepository.save(endpoint);
-            auditKaydiRepository.save(new AuditKaydi("DEVRE_KAPANDI", endpoint.getId(), "saglik sondasi basarili"));
+            auditKaydiRepository.save(new AuditKaydi(yoklamaTeslimati.getOrganizasyonId(), "DEVRE_KAPANDI",
+                    endpoint.getId(), "saglik sondasi basarili"));
             log.info("Endpoint devresi kapandi (saglik sondasi basarili): {}", endpoint.getId());
 
             birikenleriKuyrugaAl(endpoint);

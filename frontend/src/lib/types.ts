@@ -79,3 +79,37 @@ export interface Sayfa<T> {
   number: number;
   size: number;
 }
+
+export interface OrganizasyonBen {
+  id: string;
+  ad: string;
+  aylikKota: number;
+  buAyKullanim: number;
+}
+
+export interface KullanimGunluk {
+  gun: string;
+  teslimatSayisi: number;
+  basarili: number;
+  basarisiz: number;
+}
+
+export interface AuditKaydi {
+  id: string;
+  tur: string;
+  hedefId: string;
+  detay: string | null;
+  olusturulma: string;
+}
+
+export interface ApiAnahtari {
+  id: string;
+  anahtarOnek: string;
+  olusturulma: string;
+  iptalEdilme: string | null;
+}
+
+export interface ApiAnahtariUretimYaniti {
+  id: string;
+  anahtar: string;
+}

@@ -10,14 +10,19 @@ import com.webhookplatformu.api.dto.OlayOzetiYaniti;
 import com.webhookplatformu.depo.EndpointRepository;
 import com.webhookplatformu.depo.OlayRepository;
 import com.webhookplatformu.depo.OlaySpecifications;
+import com.webhookplatformu.depo.OrganizasyonRepository;
 import com.webhookplatformu.depo.TeslimatRepository;
 import com.webhookplatformu.depo.UygulamaRepository;
 import com.webhookplatformu.motor.IdempotencyAnahtariUretici;
 import com.webhookplatformu.motor.TeslimatPayload;
+import com.webhookplatformu.servis.GirisHizSiniricisi;
+import com.webhookplatformu.servis.KullanimSayaciServisi;
 import com.webhookplatformu.varlik.Endpoint;
 import com.webhookplatformu.varlik.Olay;
+import com.webhookplatformu.varlik.Organizasyon;
 import com.webhookplatformu.varlik.Teslimat;
 import com.webhookplatformu.varlik.Uygulama;
+import com.webhookplatformu.yapilandirma.OrganizasyonBaglami;
 import jakarta.validation.Valid;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -51,23 +56,33 @@ public class OlayController {
 
     private final OlayRepository olayRepository;
     private final UygulamaRepository uygulamaRepository;
+    private final OrganizasyonRepository organizasyonRepository;
     private final EndpointRepository endpointRepository;
     private final TeslimatRepository teslimatRepository;
     private final GorevGonderici gorevGonderici;
     private final IdempotencyAnahtariUretici idempotencyAnahtariUretici;
     private final ObjectMapper objectMapper;
+    private final OrganizasyonBaglami organizasyonBaglami;
+    private final GirisHizSiniricisi girisHizSiniricisi;
+    private final KullanimSayaciServisi kullanimSayaciServisi;
 
     public OlayController(OlayRepository olayRepository, UygulamaRepository uygulamaRepository,
-                           EndpointRepository endpointRepository, TeslimatRepository teslimatRepository,
-                           GorevGonderici gorevGonderici, IdempotencyAnahtariUretici idempotencyAnahtariUretici,
-                           ObjectMapper objectMapper) {
+                           OrganizasyonRepository organizasyonRepository, EndpointRepository endpointRepository,
+                           TeslimatRepository teslimatRepository, GorevGonderici gorevGonderici,
+                           IdempotencyAnahtariUretici idempotencyAnahtariUretici, ObjectMapper objectMapper,
+                           OrganizasyonBaglami organizasyonBaglami, GirisHizSiniricisi girisHizSiniricisi,
+                           KullanimSayaciServisi kullanimSayaciServisi) {
         this.olayRepository = olayRepository;
         this.uygulamaRepository = uygulamaRepository;
+        this.organizasyonRepository = organizasyonRepository;
         this.endpointRepository = endpointRepository;
         this.teslimatRepository = teslimatRepository;
         this.gorevGonderici = gorevGonderici;
         this.idempotencyAnahtariUretici = idempotencyAnahtariUretici;
         this.objectMapper = objectMapper;
+        this.organizasyonBaglami = organizasyonBaglami;
+        this.girisHizSiniricisi = girisHizSiniricisi;
+        this.kullanimSayaciServisi = kullanimSayaciServisi;
     }
 
     @GetMapping
@@ -76,6 +91,7 @@ public class OlayController {
                                           @RequestParam(required = false) Instant baslangic,
                                           @RequestParam(required = false) Instant bitis,
                                           Pageable pageable) {
+        uygulamaDogrula(uygulamaId);
         return olayRepository.findAll(OlaySpecifications.filtrele(uygulamaId, tip, baslangic, bitis), pageable)
                 .map(olay -> OlayOzetiYaniti.of(olay, teslimatRepository.findByOlayId(olay.getId())));
     }
@@ -87,16 +103,26 @@ public class OlayController {
             @RequestHeader("Idempotency-Key") String idempotencyKey,
             @Valid @RequestBody OlayOlusturmaIstegi istek) {
 
+        Uygulama uygulama = uygulamaDogrula(uygulamaId);
+        UUID organizasyonId = uygulama.getOrganizasyonId();
+
+        if (!girisHizSiniricisi.izinVer(organizasyonId)) {
+            throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "Giris hiz siniri asildi");
+        }
+        Organizasyon organizasyon = organizasyonRepository.findById(organizasyonId).orElseThrow();
+        Instant ayBaslangici = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.DAYS)
+                .atZone(java.time.ZoneOffset.UTC).withDayOfMonth(1).toInstant();
+        if (teslimatRepository.countByOrganizasyonIdAndOlusturulmaAfter(organizasyonId, ayBaslangici)
+                >= organizasyon.getAylikKota()) {
+            throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "Aylik teslimat kotasi asildi");
+        }
+
         Optional<Olay> mevcutOlay = olayRepository.findByUygulamaIdAndDisKaynakId(uygulamaId, idempotencyKey);
         if (mevcutOlay.isPresent()) {
             List<Teslimat> mevcutTeslimatlar = teslimatRepository.findByOlayId(mevcutOlay.get().getId());
             return ResponseEntity.ok(new OlayOlusturmaYaniti(mevcutOlay.get().getId(), mevcutTeslimatlar.size(),
                     mevcutTeslimatlar.stream().map(Teslimat::getId).toList()));
         }
-
-        Uygulama uygulama = uygulamaRepository.findById(uygulamaId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Uygulama bulunamadi: " + uygulamaId));
 
         String payloadJson;
         try {
@@ -105,7 +131,7 @@ public class OlayController {
             throw new IllegalStateException("Payload serilestirilemedi", e);
         }
 
-        Olay olay = new Olay(uygulamaId, istek.tip(), payloadJson, idempotencyKey);
+        Olay olay = new Olay(uygulamaId, organizasyonId, istek.tip(), payloadJson, idempotencyKey);
         olayRepository.save(olay);
 
         List<Endpoint> aboneEndpointler = endpointRepository.findByUygulamaId(uygulamaId).stream()
@@ -118,16 +144,31 @@ public class OlayController {
             olusanTeslimatIdleri.add(teslimatId);
             if (endpoint.devreAcikMi()) {
                 // Devre acik: motora hic gonderilmez, sagli sondasi devreyi kapatana kadar bekler.
-                teslimatRepository.save(Teslimat.beklemede(teslimatId, olay.getId(), endpoint.getId()));
+                teslimatRepository.save(Teslimat.beklemede(teslimatId, olay.getId(), endpoint.getId(), organizasyonId));
                 continue;
             }
-            String motorIdempotencyAnahtari = idempotencyAnahtariUretici.uret(uygulama.getOrganizasyonId(), teslimatId);
+            String motorIdempotencyAnahtari = idempotencyAnahtariUretici.uret(organizasyonId, teslimatId);
+            // Endpoint hiz siniri varsa siradaki gonderimin en erken ne zaman olabilecegini
+            // hesapla, motorun kendi planlananZaman zamanlamasini kullan (bkz Faz 4.3).
+            Instant planlananZaman = endpoint.siradakiPlanlamayiHesaplaVeIlerlet();
+            endpointRepository.save(endpoint);
             UUID gorevId = gorevGonderici.gonder(endpoint.getRetryProfili().getGorevTipi(),
-                    new TeslimatPayload(teslimatId), new GorevOpsiyonlari(motorIdempotencyAnahtari, null, null));
-            teslimatRepository.save(new Teslimat(teslimatId, olay.getId(), endpoint.getId(), gorevId));
+                    new TeslimatPayload(teslimatId), new GorevOpsiyonlari(motorIdempotencyAnahtari, null, planlananZaman));
+            teslimatRepository.save(new Teslimat(teslimatId, olay.getId(), endpoint.getId(), organizasyonId, gorevId));
         }
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new OlayOlusturmaYaniti(olay.getId(), aboneEndpointler.size(), olusanTeslimatIdleri));
+    }
+
+    private Uygulama uygulamaDogrula(UUID uygulamaId) {
+        Uygulama uygulama = uygulamaRepository.findById(uygulamaId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Uygulama bulunamadi: " + uygulamaId));
+        if (!uygulama.getOrganizasyonId().equals(organizasyonBaglami.getOrganizasyonId())) {
+            // 403 degil 404 - varlik sizdirmamak icin (bkz Faz 4.6 kapi testi 2. adim).
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Uygulama bulunamadi: " + uygulamaId);
+        }
+        return uygulama;
     }
 }
