@@ -1,0 +1,52 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: webhook-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      # 5433 (gorev-motoru'nun kendi gelistirme postgres'i 5432'yi kullaniyor, ayni anda
+      # calistirilabilsin diye farkli host portu).
+      - "5433:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  rabbitmq:
+    image: heidiks/rabbitmq-delayed-message-exchange:3.13.0-management
+    container_name: webhook-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+    ports:
+      # ayni gerekce: gorev-motoru'nun rabbitmq'su 5672/15672'yi kullaniyor.
+      - "5673:5672"
+      - "15673:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  test-alici:
+    build:
+      context: ./test-alici
+    container_name: webhook-test-alici
+    ports:
+      - "4000:4000"
+
+  # backend-api ve backend-worker BILINCLI OLARAK burada yok (bkz README "Neden backend
+  # Docker'da değil"): motor-spring-starter:0.1.0-SNAPSHOT henuz hicbir uzak Maven
+  # repository'sinde degil, sadece bu makinenin local .m2'sinde - build container'i buna
+  # erisemiyor. GitHub Packages'a publish edilene kadar (ileri bir faz) backend host'ta
+  # `mvn spring-boot:run` ile calistiriliyor, sadece altyapi (postgres/rabbitmq/test-alici)
+  # container'da.
+
+volumes:
+  postgres-data:
