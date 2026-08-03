@@ -7,6 +7,7 @@ import com.webhookplatformu.guvenlik.SecretUretici;
 import com.webhookplatformu.guvenlik.SifrelemeServisi;
 import com.webhookplatformu.varlik.Endpoint;
 import com.webhookplatformu.varlik.Organizasyon;
+import com.webhookplatformu.varlik.RetryProfili;
 import com.webhookplatformu.varlik.Uygulama;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,8 +52,11 @@ public class VeriTohumlayici implements CommandLineRunner {
         uygulamaRepository.save(uygulama);
 
         String duzSecret = secretUretici.uret();
-        Endpoint endpoint = new Endpoint(uygulama.getId(), "http://localhost:4000/webhook?mod=ok",
-                sifrelemeServisi.sifrele(duzSecret), new String[0]);
+        // URL'de mod query param'i YOK bilincli - test-alicinin davranisi artik
+        // POST /varsayilan-mod ile calisma zamaninda degistiriliyor (bkz Faz 2.6).
+        // HIZLI profili (maxDeneme=3): kapi testinde retry/DLQ senaryolari daha hizli tamamlansin.
+        Endpoint endpoint = new Endpoint(uygulama.getId(), "http://localhost:4000/webhook",
+                sifrelemeServisi.sifrele(duzSecret), new String[0], RetryProfili.HIZLI);
         endpointRepository.save(endpoint);
 
         log.info("TOHUM organizasyonId={}", organizasyon.getId());
