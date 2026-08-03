@@ -101,6 +101,13 @@ public class Endpoint {
         return olusturulma;
     }
 
+    /** Faz 3.4 düzenleme formu — secret bilerek dışarıda tutuluyor, ayrı bir akışla döner. */
+    public void guncelle(String url, String[] olayFiltresi, RetryProfili retryProfili) {
+        this.url = url;
+        this.olayFiltresi = olayFiltresi;
+        this.retryProfili = retryProfili;
+    }
+
     /** Boş filtre = tüm event tiplerine abone. Faz 2+'da glob eşleşmesi eklenecek. */
     public boolean olayTipineAboneMi(String olayTipi) {
         if (olayFiltresi == null || olayFiltresi.length == 0) {
