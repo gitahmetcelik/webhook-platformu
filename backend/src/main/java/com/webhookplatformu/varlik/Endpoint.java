@@ -15,6 +15,9 @@ import org.hibernate.type.SqlTypes;
 @Table(name = "endpoint", schema = "webhook")
 public class Endpoint {
 
+    /** Devre kesici eşiği — bu kadar ardışık kalıcı hatadan sonra devre açılır (bkz Faz 2.4). */
+    public static final int DEVRE_ESIGI = 20;
+
     @Id
     private UUID id;
 
@@ -36,19 +39,29 @@ public class Endpoint {
     @Column(name = "devre_durumu", nullable = false)
     private DevreDurumu devreDurumu;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "retry_profili", nullable = false)
+    private RetryProfili retryProfili;
+
+    @Column(name = "ardisik_hata_sayisi", nullable = false)
+    private int ardisikHataSayisi;
+
     @Column(nullable = false)
     private Instant olusturulma;
 
     protected Endpoint() {
     }
 
-    public Endpoint(UUID uygulamaId, String url, String imzaSecretSifreli, String[] olayFiltresi) {
+    public Endpoint(UUID uygulamaId, String url, String imzaSecretSifreli, String[] olayFiltresi,
+                     RetryProfili retryProfili) {
         this.id = UUID.randomUUID();
         this.uygulamaId = uygulamaId;
         this.url = url;
         this.imzaSecret = imzaSecretSifreli;
         this.olayFiltresi = olayFiltresi;
         this.devreDurumu = DevreDurumu.KAPALI;
+        this.retryProfili = retryProfili;
+        this.ardisikHataSayisi = 0;
         this.olusturulma = Instant.now();
     }
 
@@ -76,6 +89,14 @@ public class Endpoint {
         return devreDurumu;
     }
 
+    public RetryProfili getRetryProfili() {
+        return retryProfili;
+    }
+
+    public int getArdisikHataSayisi() {
+        return ardisikHataSayisi;
+    }
+
     public Instant getOlusturulma() {
         return olusturulma;
     }
@@ -91,5 +112,40 @@ public class Endpoint {
             }
         }
         return false;
+    }
+
+    public boolean devreAcikMi() {
+        return devreDurumu == DevreDurumu.ACIK;
+    }
+
+    /** Kalıcı hatadan sonra çağrılır — eşiği aşarsa devreyi açar. @return devre yeni açıldıysa true. */
+    public boolean ardisikHataArtir() {
+        this.ardisikHataSayisi++;
+        if (this.ardisikHataSayisi >= DEVRE_ESIGI && devreDurumu == DevreDurumu.KAPALI) {
+            this.devreDurumu = DevreDurumu.ACIK;
+            return true;
+        }
+        return false;
+    }
+
+    public void ardisikHataSifirla() {
+        this.ardisikHataSayisi = 0;
+        this.devreDurumu = DevreDurumu.KAPALI;
+    }
+
+    /** Sağlık sondası bir deneme göndermeden önce devreyi yarı-açığa çeker. */
+    public void yariAcikOlarakIsaretle() {
+        this.devreDurumu = DevreDurumu.YARI_ACIK;
+    }
+
+    /** Devreyi elle (operasyon endpoint'i) veya sağlık sondası başarısızlığında yeniden açar. */
+    public void devreyiAc() {
+        this.devreDurumu = DevreDurumu.ACIK;
+    }
+
+    /** Elle sıfırlama (bkz {@code POST /v1/endpointler/{id}/devre-sifirla}). */
+    public void devreyiKapat() {
+        this.devreDurumu = DevreDurumu.KAPALI;
+        this.ardisikHataSayisi = 0;
     }
 }

@@ -96,9 +96,14 @@ public class OlayController {
 
         for (Endpoint endpoint : aboneEndpointler) {
             UUID teslimatId = UUID.randomUUID();
+            if (endpoint.devreAcikMi()) {
+                // Devre acik: motora hic gonderilmez, sagli sondasi devreyi kapatana kadar bekler.
+                teslimatRepository.save(Teslimat.beklemede(teslimatId, olay.getId(), endpoint.getId()));
+                continue;
+            }
             String motorIdempotencyAnahtari = idempotencyAnahtariUretici.uret(uygulama.getOrganizasyonId(), teslimatId);
-            UUID gorevId = gorevGonderici.gonder("webhook.teslimat", new TeslimatPayload(teslimatId),
-                    new GorevOpsiyonlari(motorIdempotencyAnahtari, null, null));
+            UUID gorevId = gorevGonderici.gonder(endpoint.getRetryProfili().getGorevTipi(),
+                    new TeslimatPayload(teslimatId), new GorevOpsiyonlari(motorIdempotencyAnahtari, null, null));
             teslimatRepository.save(new Teslimat(teslimatId, olay.getId(), endpoint.getId(), gorevId));
         }
 
