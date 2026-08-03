@@ -1,0 +1,52 @@
+spring:
+  application:
+    name: webhook-platformu
+
+  datasource:
+    # 5433: gorev-motoru'nun kendi gelistirme postgres'i 5432'yi kullaniyor, ikisi ayni anda
+    # calisabilsin diye docker-compose.yml'de farkli host portuna eslendi.
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/webhook_platformu}
+    username: ${SPRING_DATASOURCE_USERNAME:webhook}
+    password: ${SPRING_DATASOURCE_PASSWORD:webhook_sifre}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+  # motor-spring-starter'in kendi migration'lari (motor-migration) + bu urunun kendi semasi
+  # (migration) tek Flyway zincirinde uygulaniyor - kopyalama yok (bkz gorev-motoru
+  # README-motor.md, Faz 0 karari). Urunun kendi migration'lari V6'dan baslamali (V1-V5 motora ait).
+  #
+  # default-schema BILINCLI OLARAK "motor" - motorun kendi migration'lari (V1-V5) sema
+  # nitelemesi yapmiyor (CREATE TABLE gorevler, "motor." onsuz), default-schema'nin "motor"
+  # olmasina guveniyor. Bizim kendi migration'imiz (V6+) bu yuzden kendi tablolarini acikca
+  # "webhook." ile niteliyor - default-schema tek deger oldugu icin baska yolu yok
+  # (Faz 1.8 kapi testinde gercekten calistirilinca bulundu: default-schema=webhook
+  # verilince motorun V1-V5'i de yanlislikla webhook semasina yaziliyordu).
+  flyway:
+    locations: classpath:db/motor-migration,classpath:db/migration
+    schemas: motor,webhook
+    default-schema: motor
+
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:localhost}
+    port: ${SPRING_RABBITMQ_PORT:5673}
+    username: ${SPRING_RABBITMQ_USERNAME:webhook}
+    password: ${SPRING_RABBITMQ_PASSWORD:webhook_sifre}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+
+motor:
+  worker:
+    tuketici-aktif: true
+
+webhook:
+  sifreleme:
+    # Endpoint imza secret'larini AES/GCM ile sifrelemek icin base64 32-byte anahtar.
+    # BU VARSAYILAN SADECE GELISTIRME ICINDIR - prod'da env variable ile ZORUNLU override.
+    anahtar: ${WEBHOOK_SIFRELEME_ANAHTARI:J26XgZYeOkGmrc1M9XOl2RXV00012hQ3Dwt5fJvmY+Y=}
