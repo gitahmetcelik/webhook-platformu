@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { QueryProvider } from "@/components/query-provider";
+import { AuthProvider } from "@/components/auth-provider";
 import { UygulamaProvider } from "@/components/uygulama-provider";
 import { UstMenu } from "@/components/ust-menu";
 import { Toaster } from "@/components/ui/sonner";
@@ -33,11 +34,13 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <QueryProvider>
-          <UygulamaProvider>
-            <UstMenu />
-            <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">{children}</main>
-            <Toaster />
-          </UygulamaProvider>
+          <AuthProvider>
+            <UygulamaProvider>
+              <UstMenu />
+              <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">{children}</main>
+              <Toaster />
+            </UygulamaProvider>
+          </AuthProvider>
         </QueryProvider>
       </body>
     </html>

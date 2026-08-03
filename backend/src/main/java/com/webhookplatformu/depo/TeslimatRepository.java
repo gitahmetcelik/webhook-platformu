@@ -25,6 +25,12 @@ public interface TeslimatRepository extends JpaRepository<Teslimat, UUID>, JpaSp
 
     long countByEndpointIdAndDurumAndOlusturulmaAfter(UUID endpointId, TeslimatDurumu durum, Instant zaman);
 
+    // Kota kontrolu (bkz Faz 4.2) - kullanim_sayaci sadece TAMAMLANMIS (terminal durumdaki)
+    // teslimatlari sayiyor, motor worker'i asenkron calistigi icin ingestion aninda henuz
+    // guncellenmemis olabilir (yaris durumu). Kota kontrolu bu yuzden dogrudan bu canli
+    // sayima dayaniyor - gecikme yok, teslimat OLUSTURULDUGU anda sayiliyor.
+    long countByOrganizasyonIdAndOlusturulmaAfter(UUID organizasyonId, Instant zaman);
+
     // Operasyon endpoint'i icin filtreli/sayfali liste TeslimatSpecifications.filtrele() ile
     // JpaSpecificationExecutor.findAll(spec, pageable) uzerinden yapiliyor (bkz o sinif -
     // eski JPQL (:param IS NULL OR ...) deseni Instant parametrelerinde Postgres hatasi

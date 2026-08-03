@@ -3,6 +3,8 @@ package com.webhookplatformu.gelistirme;
 import com.webhookplatformu.depo.EndpointRepository;
 import com.webhookplatformu.depo.OrganizasyonRepository;
 import com.webhookplatformu.depo.UygulamaRepository;
+import com.webhookplatformu.guvenlik.ApiAnahtariServisi;
+import com.webhookplatformu.guvenlik.ApiAnahtariServisi.UretilenAnahtar;
 import com.webhookplatformu.guvenlik.SecretUretici;
 import com.webhookplatformu.guvenlik.SifrelemeServisi;
 import com.webhookplatformu.varlik.Endpoint;
@@ -16,8 +18,9 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 /**
- * Henuz bir admin API'si olmadigi icin (Faz 1'in kapsami disi), kapi testi/gelistirme icin
- * tek seferlik bir organizasyon+uygulama+endpoint (test-alici'ye isaret eden) tohumluyor.
+ * Henuz bir kayit/onboarding akisi olmadigi icin (bkz Faz 4 planlama notu), kapi testi/
+ * gelistirme icin iki organizasyon (kiracı izolasyonu test edilebilsin diye - bkz Faz 4.6
+ * kapi testi 1-2. adim) + her birine bir uygulama+endpoint+API anahtari tohumluyor.
  * Sadece {@code seed} profili aktifken calisir - her acilista tekrar tohumlamamak icin bir
  * kere calistirilip tekrar profilsiz acilmali.
  */
@@ -32,23 +35,30 @@ public class VeriTohumlayici implements CommandLineRunner {
     private final EndpointRepository endpointRepository;
     private final SecretUretici secretUretici;
     private final SifrelemeServisi sifrelemeServisi;
+    private final ApiAnahtariServisi apiAnahtariServisi;
 
     public VeriTohumlayici(OrganizasyonRepository organizasyonRepository, UygulamaRepository uygulamaRepository,
                             EndpointRepository endpointRepository, SecretUretici secretUretici,
-                            SifrelemeServisi sifrelemeServisi) {
+                            SifrelemeServisi sifrelemeServisi, ApiAnahtariServisi apiAnahtariServisi) {
         this.organizasyonRepository = organizasyonRepository;
         this.uygulamaRepository = uygulamaRepository;
         this.endpointRepository = endpointRepository;
         this.secretUretici = secretUretici;
         this.sifrelemeServisi = sifrelemeServisi;
+        this.apiAnahtariServisi = apiAnahtariServisi;
     }
 
     @Override
     public void run(String... args) {
-        Organizasyon organizasyon = new Organizasyon("Demo Organizasyon");
+        tohumla("Demo Organizasyon A", "Demo Uygulama A");
+        tohumla("Demo Organizasyon B", "Demo Uygulama B");
+    }
+
+    private void tohumla(String orgAdi, String uygulamaAdi) {
+        Organizasyon organizasyon = new Organizasyon(orgAdi);
         organizasyonRepository.save(organizasyon);
 
-        Uygulama uygulama = new Uygulama(organizasyon.getId(), "Demo Uygulama", "prod");
+        Uygulama uygulama = new Uygulama(organizasyon.getId(), uygulamaAdi, "prod");
         uygulamaRepository.save(uygulama);
 
         String duzSecret = secretUretici.uret();
@@ -59,9 +69,12 @@ public class VeriTohumlayici implements CommandLineRunner {
                 sifrelemeServisi.sifrele(duzSecret), new String[0], RetryProfili.HIZLI);
         endpointRepository.save(endpoint);
 
-        log.info("TOHUM organizasyonId={}", organizasyon.getId());
-        log.info("TOHUM uygulamaId={}", uygulama.getId());
-        log.info("TOHUM endpointId={}", endpoint.getId());
-        log.info("TOHUM endpoint duz secret (test-alici WEBHOOK_SECRET olarak ayarla)={}", duzSecret);
+        UretilenAnahtar apiAnahtari = apiAnahtariServisi.uret(organizasyon.getId());
+
+        log.info("TOHUM [{}] organizasyonId={}", orgAdi, organizasyon.getId());
+        log.info("TOHUM [{}] uygulamaId={}", orgAdi, uygulama.getId());
+        log.info("TOHUM [{}] endpointId={}", orgAdi, endpoint.getId());
+        log.info("TOHUM [{}] endpoint duz secret (test-alici WEBHOOK_SECRET olarak ayarla)={}", orgAdi, duzSecret);
+        log.info("TOHUM [{}] API anahtari (Authorization: Bearer ...)={}", orgAdi, apiAnahtari.duzAnahtar());
     }
 }

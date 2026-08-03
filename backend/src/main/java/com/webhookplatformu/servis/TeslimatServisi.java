@@ -36,11 +36,12 @@ public class TeslimatServisi {
     private final GorevGonderici gorevGonderici;
     private final IdempotencyAnahtariUretici idempotencyAnahtariUretici;
     private final DevreKesiciYardimcisi devreKesiciYardimcisi;
+    private final KullanimSayaciServisi kullanimSayaciServisi;
 
     public TeslimatServisi(TeslimatRepository teslimatRepository, EndpointRepository endpointRepository,
                             UygulamaRepository uygulamaRepository, GorevYonetimServisi gorevYonetimServisi,
                             GorevGonderici gorevGonderici, IdempotencyAnahtariUretici idempotencyAnahtariUretici,
-                            DevreKesiciYardimcisi devreKesiciYardimcisi) {
+                            DevreKesiciYardimcisi devreKesiciYardimcisi, KullanimSayaciServisi kullanimSayaciServisi) {
         this.teslimatRepository = teslimatRepository;
         this.endpointRepository = endpointRepository;
         this.uygulamaRepository = uygulamaRepository;
@@ -48,6 +49,7 @@ public class TeslimatServisi {
         this.gorevGonderici = gorevGonderici;
         this.idempotencyAnahtariUretici = idempotencyAnahtariUretici;
         this.devreKesiciYardimcisi = devreKesiciYardimcisi;
+        this.kullanimSayaciServisi = kullanimSayaciServisi;
     }
 
     /**
@@ -73,6 +75,7 @@ public class TeslimatServisi {
 
                 Endpoint endpoint = endpointRepository.findById(teslimat.getEndpointId()).orElseThrow();
                 devreKesiciYardimcisi.kaliciBasarisizlikBildir(endpoint);
+                kullanimSayaciServisi.artir(teslimat.getOrganizasyonId(), false);
             }
         }
     }
@@ -99,8 +102,8 @@ public class TeslimatServisi {
         UUID gorevId = gorevGonderici.gonder(endpoint.getRetryProfili().getGorevTipi(),
                 new TeslimatPayload(yeniTeslimatId), new GorevOpsiyonlari(idempotencyAnahtari, null, null));
 
-        Teslimat yeniTeslimat = new Teslimat(yeniTeslimatId, eskiTeslimat.getOlayId(), endpoint.getId(), gorevId,
-                eskiTeslimat.getId());
+        Teslimat yeniTeslimat = new Teslimat(yeniTeslimatId, eskiTeslimat.getOlayId(), endpoint.getId(),
+                uygulama.getOrganizasyonId(), gorevId, eskiTeslimat.getId());
         return teslimatRepository.save(yeniTeslimat);
     }
 }

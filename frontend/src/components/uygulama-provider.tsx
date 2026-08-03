@@ -1,23 +1,28 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { createContext, useContext } from "react";
+import { usePathname } from "next/navigation";
+import { createContext, useContext, useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { apiAnahtariniOku } from "@/lib/auth";
 import type { Uygulama } from "@/lib/types";
 
-/**
- * Bu fazda gerçek çok-kiracılık/auth yok (bkz Faz 4) — dashboard tek organizasyon
- * varsayımıyla ilk uygulamayı context olarak kullanıyor.
- */
 const UygulamaContext = createContext<{ uygulama: Uygulama | undefined; yukleniyor: boolean }>({
   uygulama: undefined,
   yukleniyor: true,
 });
 
 export function UygulamaProvider({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  // Bkz auth-provider.tsx - ayni sebep: localStorage sunucuda yok, mount sonrasina erteleniyor.
+  const [anahtarVar, setAnahtarVar] = useState(false);
+  useEffect(() => setAnahtarVar(apiAnahtariniOku() !== null), []);
+
   const { data, isLoading } = useQuery({
     queryKey: ["uygulamalar"],
     queryFn: api.uygulamalar.listele,
+    enabled: anahtarVar && pathname !== "/giris",
+    retry: false,
   });
 
   return (

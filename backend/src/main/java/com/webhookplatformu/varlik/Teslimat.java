@@ -22,6 +22,10 @@ public class Teslimat {
     @Column(name = "endpoint_id", nullable = false)
     private UUID endpointId;
 
+    /** Denormalize edildi (bkz Faz 4 planlama notu) - org-scoped sorgular icin JOIN gerektirmez. */
+    @Column(name = "organizasyon_id", nullable = false)
+    private UUID organizasyonId;
+
     /**
      * Motordaki görevin UUID'si — ürün ile motor arasındaki tek bağ. Devre açıkken
      * ({@link TeslimatDurumu#BEKLEMEDE}) teslimat hiç motora gönderilmediği için null olabilir;
@@ -53,15 +57,16 @@ public class Teslimat {
      * {@code gorevGonderici.gonder()} çağrılırken zaten bilinmesi gereken bir değer — teslimat
      * id'si önce üretilip motora geçiliyor, dönen gorevId ile birlikte buraya veriliyor.
      */
-    public Teslimat(UUID id, UUID olayId, UUID endpointId, UUID gorevId) {
-        this(id, olayId, endpointId, gorevId, null);
+    public Teslimat(UUID id, UUID olayId, UUID endpointId, UUID organizasyonId, UUID gorevId) {
+        this(id, olayId, endpointId, organizasyonId, gorevId, null);
     }
 
     /** Bir DLQ yeniden-gönderiminden doğan teslimat için — {@code anaTeslimatId} eskiye bağlar. */
-    public Teslimat(UUID id, UUID olayId, UUID endpointId, UUID gorevId, UUID anaTeslimatId) {
+    public Teslimat(UUID id, UUID olayId, UUID endpointId, UUID organizasyonId, UUID gorevId, UUID anaTeslimatId) {
         this.id = id;
         this.olayId = olayId;
         this.endpointId = endpointId;
+        this.organizasyonId = organizasyonId;
         this.gorevId = gorevId;
         this.anaTeslimatId = anaTeslimatId;
         this.durum = TeslimatDurumu.KUYRUKTA;
@@ -71,11 +76,12 @@ public class Teslimat {
     }
 
     /** Devre açıkken oluşturulan, motora hiç gönderilmemiş bir teslimat. */
-    public static Teslimat beklemede(UUID id, UUID olayId, UUID endpointId) {
+    public static Teslimat beklemede(UUID id, UUID olayId, UUID endpointId, UUID organizasyonId) {
         Teslimat teslimat = new Teslimat();
         teslimat.id = id;
         teslimat.olayId = olayId;
         teslimat.endpointId = endpointId;
+        teslimat.organizasyonId = organizasyonId;
         teslimat.durum = TeslimatDurumu.BEKLEMEDE;
         Instant simdi = Instant.now();
         teslimat.olusturulma = simdi;
@@ -99,6 +105,10 @@ public class Teslimat {
 
     public UUID getEndpointId() {
         return endpointId;
+    }
+
+    public UUID getOrganizasyonId() {
+        return organizasyonId;
     }
 
     public UUID getGorevId() {

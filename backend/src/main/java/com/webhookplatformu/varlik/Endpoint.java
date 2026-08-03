@@ -49,6 +49,21 @@ public class Endpoint {
     @Column(nullable = false)
     private Instant olusturulma;
 
+    /** Rotasyon sirasinda bir onceki secret - 24 saatlik pencerede imza dogrulamada hala kabul edilir. */
+    @Column(name = "eski_imza_secret")
+    private String eskiImzaSecret;
+
+    @Column(name = "eski_secret_gecerlilik_bitis")
+    private Instant eskiSecretGecerlilikBitis;
+
+    /** Saniyede en fazla kac teslimat gonderilecegi (bkz Faz 4.3) - null = sinirsiz. */
+    @Column(name = "hiz_siniri_sn")
+    private Integer hizSiniriSn;
+
+    /** Motora en son planlanan gonderim zamani - siradaki teslimatin ne zaman planlanacagini hesaplamak icin. */
+    @Column(name = "son_planlanan_zaman")
+    private Instant sonPlanlananZaman;
+
     protected Endpoint() {
     }
 
@@ -81,6 +96,22 @@ public class Endpoint {
         return imzaSecret;
     }
 
+    public String getEskiImzaSecret() {
+        return eskiImzaSecret;
+    }
+
+    public Instant getEskiSecretGecerlilikBitis() {
+        return eskiSecretGecerlilikBitis;
+    }
+
+    public Integer getHizSiniriSn() {
+        return hizSiniriSn;
+    }
+
+    public Instant getSonPlanlananZaman() {
+        return sonPlanlananZaman;
+    }
+
     public String[] getOlayFiltresi() {
         return olayFiltresi;
     }
@@ -102,10 +133,40 @@ public class Endpoint {
     }
 
     /** Faz 3.4 düzenleme formu — secret bilerek dışarıda tutuluyor, ayrı bir akışla döner. */
-    public void guncelle(String url, String[] olayFiltresi, RetryProfili retryProfili) {
+    public void guncelle(String url, String[] olayFiltresi, RetryProfili retryProfili, Integer hizSiniriSn) {
         this.url = url;
         this.olayFiltresi = olayFiltresi;
         this.retryProfili = retryProfili;
+        this.hizSiniriSn = hizSiniriSn;
+    }
+
+    /**
+     * Yeni secret'i aktif eder, eskisini {@code graceSaat} saat boyunca imza dogrulamada
+     * kabul edilir tutar (bkz Faz 4.1). Biz gonderen taraf oldugumuz icin YENI teslimatlar
+     * hemen yeni secret ile imzalanir - "eski gecerli kalir" sadece dogrulama penceresi icin.
+     */
+    public void secretRotasyonuBaslat(String yeniImzaSecretSifreli, long graceSaat) {
+        this.eskiImzaSecret = this.imzaSecret;
+        this.eskiSecretGecerlilikBitis = Instant.now().plusSeconds(graceSaat * 3600);
+        this.imzaSecret = yeniImzaSecretSifreli;
+    }
+
+    public boolean eskiSecretGecerliMi() {
+        return eskiImzaSecret != null && eskiSecretGecerlilikBitis != null
+                && Instant.now().isBefore(eskiSecretGecerlilikBitis);
+    }
+
+    /** Hiz siniri varsa siradaki teslimatin planlanacagi en erken zamani hesaplayip ilerletir. */
+    public Instant siradakiPlanlamayiHesaplaVeIlerlet() {
+        if (hizSiniriSn == null || hizSiniriSn <= 0) {
+            return null;
+        }
+        Instant simdi = Instant.now();
+        long araMs = 1000L / hizSiniriSn;
+        Instant enErken = sonPlanlananZaman == null ? simdi : sonPlanlananZaman.plusMillis(araMs);
+        Instant planlanan = enErken.isAfter(simdi) ? enErken : simdi;
+        this.sonPlanlananZaman = planlanan;
+        return planlanan.equals(simdi) ? null : planlanan;
     }
 
     /** Boş filtre = tüm event tiplerine abone. Faz 2+'da glob eşleşmesi eklenecek. */

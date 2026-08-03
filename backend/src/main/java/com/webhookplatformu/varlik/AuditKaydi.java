@@ -14,6 +14,9 @@ public class AuditKaydi {
     @Id
     private UUID id;
 
+    @Column(name = "organizasyon_id", nullable = false)
+    private UUID organizasyonId;
+
     @Column(nullable = false)
     private String tur;
 
@@ -28,8 +31,9 @@ public class AuditKaydi {
     protected AuditKaydi() {
     }
 
-    public AuditKaydi(String tur, UUID hedefId, String detay) {
+    public AuditKaydi(UUID organizasyonId, String tur, UUID hedefId, String detay) {
         this.id = UUID.randomUUID();
+        this.organizasyonId = organizasyonId;
         this.tur = tur;
         this.hedefId = hedefId;
         this.detay = detay;
@@ -38,6 +42,10 @@ public class AuditKaydi {
 
     public UUID getId() {
         return id;
+    }
+
+    public UUID getOrganizasyonId() {
+        return organizasyonId;
     }
 
     public String getTur() {
