@@ -75,9 +75,10 @@ endpoint'e boşuna istek yağdırılmaz. `/test`'ten bir event daha gönderip bu
 
 Alıcıyı düzelt (`mod: ok`).
 
-Devre açıldıysa **`/endpointler`** → **Devre Sıfırla**. (Elle sıfırlamasan da sağlık sondası
-5 dakikada bir kendisi deneyip devreyi kapatır ve biriken **BEKLEMEDE** teslimatları kuyruğa
-alır — demoda beklememek için elle sıfırlıyoruz.)
+Devre açıldıysa **`/endpointler`** → **Devre Sıfırla**. Devre kapanınca **BEKLEMEDE**'de
+biriken teslimatlar da kuyruğa alınır — birazdan `/olaylar` sayfasında onların da başarılı
+olduğunu göster. (Elle sıfırlamasan da sağlık sondası 5 dakikada bir kendisi deneyip devreyi
+kapatır; demoda beklememek için elle sıfırlıyoruz.)
 
 **`/teslimatlar`** → DLQ'daki teslimatı aç → **Yeniden Gönder**.
 

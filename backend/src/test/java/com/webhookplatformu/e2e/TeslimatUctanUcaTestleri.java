@@ -206,6 +206,38 @@ class TeslimatUctanUcaTestleri extends UctanUcaOrtakAyarlar {
     }
 
     @Test
+    void devreElleSifirlanincaBekleyenTeslimatlarDaKuyrugaAlinir() {
+        Kiraci kiraci = yeniKiraciOlustur(RetryProfili.HIZLI);
+        testAliciModAyarla("404");
+
+        for (int i = 0; i < TEST_DEVRE_ESIGI; i++) {
+            tekTeslimatliOlayGonder(kiraci, "siparis.olusturuldu", Map.of("i", i));
+        }
+        Awaitility.await().atMost(BEKLEME_ZAMAN_ASIMI).pollInterval(BEKLEME_ARALIGI).untilAsserted(() ->
+                assertThat(endpointDetayGetir(kiraci.apiAnahtari(), kiraci.endpointId()).devreDurumu())
+                        .isEqualTo(DevreDurumu.ACIK));
+
+        // Devre acikken gelen teslimat motora hic gonderilmez, BEKLEMEDE'de birikir.
+        UUID bekleyenId = tekTeslimatliOlayGonder(kiraci, "siparis.olusturuldu", Map.of("bekleyen", true));
+        assertThat(teslimatOzetiGetir(kiraci.apiAnahtari(), bekleyenId).durum())
+                .isEqualTo(TeslimatDurumu.BEKLEMEDE);
+
+        testAliciModAyarla("ok");
+        ResponseEntity<String> sifirlaYaniti = restTemplate.exchange(
+                "/v1/endpointler/" + kiraci.endpointId() + "/devre-sifirla", HttpMethod.POST,
+                new org.springframework.http.HttpEntity<>(yetkiliBasliklar(kiraci.apiAnahtari())), String.class);
+        assertThat(sifirlaYaniti.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+        // ASIL IDDIA: elle sifirlama bekleyenleri de kuyruga almali. Almasaydi bu teslimat
+        // KALICI OLARAK BEKLEMEDE kalirdi - saglik sondasi yalnizca devresi ACIK endpoint'leri
+        // tariyor, elle kapatilan endpoint'e bir daha hic bakmiyor (Faz 5.6'da canli yiginda
+        // gercekten gozlemlendi: musteriye 201 denmis event'ler sessizce kayboluyordu).
+        Awaitility.await().atMost(BEKLEME_ZAMAN_ASIMI).pollInterval(BEKLEME_ARALIGI).untilAsserted(() ->
+                assertThat(teslimatOzetiGetir(kiraci.apiAnahtari(), bekleyenId).durum())
+                        .isEqualTo(TeslimatDurumu.BASARILI));
+    }
+
+    @Test
     void baskaOrganizasyonunKaynagina404Doner() {
         Kiraci kiraciA = yeniKiraciOlustur(RetryProfili.HIZLI);
         Kiraci kiraciB = yeniKiraciOlustur(RetryProfili.HIZLI);

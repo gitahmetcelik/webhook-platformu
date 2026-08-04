@@ -1,16 +1,14 @@
 package com.webhookplatformu.motor;
 
 import com.gorevplatformu.motorcekirdek.GorevBaglami;
-import com.gorevplatformu.motorcekirdek.GorevGonderici;
 import com.gorevplatformu.motorcekirdek.GorevHandler;
-import com.gorevplatformu.motorcekirdek.GorevOpsiyonlari;
 import com.gorevplatformu.motorcekirdek.GorevTipi;
 import com.webhookplatformu.depo.AuditKaydiRepository;
 import com.webhookplatformu.depo.EndpointRepository;
 import com.webhookplatformu.depo.OlayRepository;
 import com.webhookplatformu.depo.TeslimatDenemesiRepository;
 import com.webhookplatformu.depo.TeslimatRepository;
-import com.webhookplatformu.depo.UygulamaRepository;
+import com.webhookplatformu.servis.BekleyenTeslimatKuyruklayici;
 import com.webhookplatformu.servis.TeslimatGonderimYardimcisi;
 import com.webhookplatformu.servis.TeslimatGonderimYardimcisi.Sonuc;
 import com.webhookplatformu.varlik.AuditKaydi;
@@ -19,9 +17,7 @@ import com.webhookplatformu.varlik.Endpoint;
 import com.webhookplatformu.varlik.Olay;
 import com.webhookplatformu.varlik.Teslimat;
 import com.webhookplatformu.varlik.TeslimatDurumu;
-import com.webhookplatformu.varlik.Uygulama;
 import java.util.List;
-import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -41,26 +37,22 @@ public class SaglikSondasiHandler implements GorevHandler<SaglikSondasiPayload> 
     private final TeslimatRepository teslimatRepository;
     private final TeslimatDenemesiRepository teslimatDenemesiRepository;
     private final OlayRepository olayRepository;
-    private final UygulamaRepository uygulamaRepository;
     private final AuditKaydiRepository auditKaydiRepository;
     private final TeslimatGonderimYardimcisi gonderimYardimcisi;
-    private final GorevGonderici gorevGonderici;
-    private final IdempotencyAnahtariUretici idempotencyAnahtariUretici;
+    private final BekleyenTeslimatKuyruklayici bekleyenTeslimatKuyruklayici;
 
     public SaglikSondasiHandler(EndpointRepository endpointRepository, TeslimatRepository teslimatRepository,
                                  TeslimatDenemesiRepository teslimatDenemesiRepository, OlayRepository olayRepository,
-                                 UygulamaRepository uygulamaRepository, AuditKaydiRepository auditKaydiRepository,
-                                 TeslimatGonderimYardimcisi gonderimYardimcisi, GorevGonderici gorevGonderici,
-                                 IdempotencyAnahtariUretici idempotencyAnahtariUretici) {
+                                 AuditKaydiRepository auditKaydiRepository,
+                                 TeslimatGonderimYardimcisi gonderimYardimcisi,
+                                 BekleyenTeslimatKuyruklayici bekleyenTeslimatKuyruklayici) {
         this.endpointRepository = endpointRepository;
         this.teslimatRepository = teslimatRepository;
         this.teslimatDenemesiRepository = teslimatDenemesiRepository;
         this.olayRepository = olayRepository;
-        this.uygulamaRepository = uygulamaRepository;
         this.auditKaydiRepository = auditKaydiRepository;
         this.gonderimYardimcisi = gonderimYardimcisi;
-        this.gorevGonderici = gorevGonderici;
-        this.idempotencyAnahtariUretici = idempotencyAnahtariUretici;
+        this.bekleyenTeslimatKuyruklayici = bekleyenTeslimatKuyruklayici;
     }
 
     @Override
@@ -101,7 +93,7 @@ public class SaglikSondasiHandler implements GorevHandler<SaglikSondasiPayload> 
                     endpoint.getId(), "saglik sondasi basarili"));
             log.info("Endpoint devresi kapandi (saglik sondasi basarili): {}", endpoint.getId());
 
-            birikenleriKuyrugaAl(endpoint);
+            bekleyenTeslimatKuyruklayici.birikenleriKuyrugaAl(endpoint);
         } else {
             endpoint.devreyiAc();
             endpointRepository.save(endpoint);
@@ -109,15 +101,4 @@ public class SaglikSondasiHandler implements GorevHandler<SaglikSondasiPayload> 
         }
     }
 
-    private void birikenleriKuyrugaAl(Endpoint endpoint) {
-        List<Teslimat> bekleyenler = teslimatRepository.findByEndpointIdAndDurum(endpoint.getId(), TeslimatDurumu.BEKLEMEDE);
-        for (Teslimat teslimat : bekleyenler) {
-            Uygulama uygulama = uygulamaRepository.findById(endpoint.getUygulamaId()).orElseThrow();
-            String idempotencyAnahtari = idempotencyAnahtariUretici.uret(uygulama.getOrganizasyonId(), teslimat.getId());
-            UUID gorevId = gorevGonderici.gonder(endpoint.getRetryProfili().getGorevTipi(),
-                    new TeslimatPayload(teslimat.getId()), new GorevOpsiyonlari(idempotencyAnahtari, null, null));
-            teslimat.gorevGonderildi(gorevId);
-            teslimatRepository.save(teslimat);
-        }
-    }
 }

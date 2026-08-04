@@ -11,6 +11,7 @@ import com.webhookplatformu.depo.UygulamaRepository;
 import com.webhookplatformu.guvenlik.HmacImzalayici;
 import com.webhookplatformu.guvenlik.SecretUretici;
 import com.webhookplatformu.guvenlik.SifrelemeServisi;
+import com.webhookplatformu.servis.BekleyenTeslimatKuyruklayici;
 import com.webhookplatformu.servis.EndpointSaglikHesaplayici;
 import com.webhookplatformu.varlik.AuditKaydi;
 import com.webhookplatformu.varlik.Endpoint;
@@ -46,11 +47,13 @@ public class EndpointController {
     private final SifrelemeServisi sifrelemeServisi;
     private final HmacImzalayici hmacImzalayici;
     private final OrganizasyonBaglami organizasyonBaglami;
+    private final BekleyenTeslimatKuyruklayici bekleyenTeslimatKuyruklayici;
 
     public EndpointController(EndpointRepository endpointRepository, UygulamaRepository uygulamaRepository,
                                AuditKaydiRepository auditKaydiRepository, EndpointSaglikHesaplayici saglikHesaplayici,
                                SecretUretici secretUretici, SifrelemeServisi sifrelemeServisi,
-                               HmacImzalayici hmacImzalayici, OrganizasyonBaglami organizasyonBaglami) {
+                               HmacImzalayici hmacImzalayici, OrganizasyonBaglami organizasyonBaglami,
+                               BekleyenTeslimatKuyruklayici bekleyenTeslimatKuyruklayici) {
         this.endpointRepository = endpointRepository;
         this.uygulamaRepository = uygulamaRepository;
         this.auditKaydiRepository = auditKaydiRepository;
@@ -59,6 +62,7 @@ public class EndpointController {
         this.sifrelemeServisi = sifrelemeServisi;
         this.hmacImzalayici = hmacImzalayici;
         this.organizasyonBaglami = organizasyonBaglami;
+        this.bekleyenTeslimatKuyruklayici = bekleyenTeslimatKuyruklayici;
     }
 
     @GetMapping("/{id}")
@@ -84,8 +88,15 @@ public class EndpointController {
         Endpoint endpoint = bul(id);
         endpoint.devreyiKapat();
         endpointRepository.save(endpoint);
+
+        // Devre acikken BEKLEMEDE'de biriken teslimatlar da kuyruga alinmali - aksi halde
+        // KALICI OLARAK kaybolurlardi: saglik sondasi yalnizca devresi ACIK endpoint'leri
+        // tariyor, elle kapatilan endpoint bir daha hic taranmiyor (bkz
+        // BekleyenTeslimatKuyruklayici; Faz 5.6 kapi testinde canli yiginda gozlemlendi).
+        int kuyruklanan = bekleyenTeslimatKuyruklayici.birikenleriKuyrugaAl(endpoint);
+
         auditKaydiRepository.save(new AuditKaydi(organizasyonBaglami.getOrganizasyonId(), "DEVRE_ELLE_SIFIRLANDI",
-                endpoint.getId(), null));
+                endpoint.getId(), "kuyruga_alinan_bekleyen=" + kuyruklanan));
     }
 
     /** Yeni secret uretir, eskisini {@value SECRET_ROTASYON_GRACE_SAAT} saat gecerli tutar (bkz Faz 4.1). */
