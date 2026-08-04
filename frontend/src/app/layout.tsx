@@ -8,6 +8,7 @@ import { UygulamaProvider } from "@/components/uygulama-provider";
 import { UstMenu } from "@/components/ust-menu";
 import { OnboardingTur } from "@/components/onboarding-tur";
 import { SayfaGecisi } from "@/components/sayfa-gecisi";
+import { KomutPaleti } from "@/components/komut-paleti";
 import { Toaster } from "@/components/ui/sonner";
 
 const geistSans = Geist({
@@ -46,6 +47,7 @@ export default function RootLayout({
                   <SayfaGecisi>{children}</SayfaGecisi>
                 </main>
                 <OnboardingTur />
+                <KomutPaleti />
                 <Toaster />
               </UygulamaProvider>
             </AuthProvider>

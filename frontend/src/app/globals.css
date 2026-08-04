@@ -161,6 +161,12 @@
   /* durum renkleri değişmez — dört renk de koyu yüzeyde ≥3:1 */
 }
 
+@keyframes sparkline-cizim {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
