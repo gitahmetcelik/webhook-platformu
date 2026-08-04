@@ -1,0 +1,62 @@
+import type { Tur } from "./tipler";
+
+export const secretRotasyonuTuru: Tur = {
+  kimlik: "secret-rotasyonu",
+  baslik: "Secret rotasyonu",
+  aciklama: "Riskli bir işlem — kullanıcı ne yaptığını bilmeli.",
+  adimlar: [
+    {
+      kimlik: "secret-rotasyon.ne-oluyor",
+      rota: "/endpointler",
+      anchor: "endpoint-secret-rotasyon",
+      yerlesim: "left",
+      baslik: "Ne oluyor",
+      metin: "Yeni bir secret üretilir. Eski secret hemen ölmez — 24 saat daha doğrulamada geçerli kalır.",
+      ilerleme: "ileri-butonu",
+      etkilesim: "engelli",
+    },
+    {
+      kimlik: "secret-rotasyon.kopyala",
+      rota: "/endpointler",
+      anchor: "endpoint-secret-goster",
+      yerlesim: "bottom",
+      baslik: "Kopyalayın",
+      metin: "Yeni secret yalnız bu pencerede görünür. Kapatmadan önce güvenli bir yere alın.",
+      ilerleme: "ileri-butonu",
+      etkilesim: "engelli",
+    },
+    {
+      kimlik: "secret-rotasyon.iki-secret",
+      rota: "/endpointler",
+      anchor: "endpoint-secret-goster",
+      yerlesim: "bottom",
+      baslik: "İki secret'ı da kabul edin",
+      metin: "Kendi tarafınızda, geçiş süresince her iki secret'ı da geçerli sayın. Kesintisiz geçiş böyle olur.",
+      ilerleme: "ileri-butonu",
+      etkilesim: "engelli",
+    },
+    {
+      kimlik: "secret-rotasyon.dogrulayin",
+      rota: "/endpointler",
+      anchor: "endpoint-satir",
+      yerlesim: "bottom",
+      baslik: "Doğrulayın",
+      metin:
+        "POST /v1/endpointler/{id}/imza-dogrula ucu, bir imzayı aktif ve grace içindeki eski secret'a karşı sınar. Rotasyonu test etmenin yolu bu.",
+      onkosul: (b) => b.endpointSayisi > 0,
+      ilerleme: "ileri-butonu",
+      etkilesim: "engelli",
+    },
+    {
+      kimlik: "secret-rotasyon.grace",
+      rota: "/endpointler",
+      anchor: "endpoint-satir",
+      yerlesim: "bottom",
+      baslik: "24 saat sonra",
+      metin: "Grace bitince eski secret geçersiz olur. O ana kadar geçişi tamamlayın.",
+      onkosul: (b) => b.endpointSayisi > 0,
+      ilerleme: "ileri-butonu",
+      etkilesim: "engelli",
+    },
+  ],
+};

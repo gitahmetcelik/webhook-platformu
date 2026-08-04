@@ -80,6 +80,11 @@ export interface EndpointOlusturmaYaniti {
   secret: string;
 }
 
+export interface SecretRotasyonYaniti {
+  secret: string;
+  eskiSecretGecerlilikBitis: string;
+}
+
 export interface Sayfa<T> {
   content: T[];
   totalElements: number;

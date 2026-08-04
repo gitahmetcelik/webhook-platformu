@@ -106,13 +106,15 @@ export default function AnaSayfa() {
           deger={endpointler?.length ?? "—"}
           gecikmeMs={50}
         />
-        <IstatistikKarti
-          icon={ShieldCheck}
-          etiket="Açık devre"
-          deger={acikDevreSayisi}
-          vurgu={acikDevreSayisi > 0 ? "kotu" : "iyi"}
-          gecikmeMs={100}
-        />
+        <div data-tur="anasayfa-devre-karti">
+          <IstatistikKarti
+            icon={ShieldCheck}
+            etiket="Açık devre"
+            deger={acikDevreSayisi}
+            vurgu={acikDevreSayisi > 0 ? "kotu" : "iyi"}
+            gecikmeMs={100}
+          />
+        </div>
         <IstatistikKarti
           icon={AlertTriangle}
           etiket="Sağlık uyarısı"

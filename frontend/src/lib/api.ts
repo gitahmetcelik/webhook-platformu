@@ -10,6 +10,7 @@ import type {
   OrganizasyonBen,
   RetryProfili,
   Sayfa,
+  SecretRotasyonYaniti,
   TeslimatDetay,
   TeslimatOzeti,
   Uygulama,
@@ -116,5 +117,7 @@ export const api = {
     guncelle: (id: string, istegi: { url: string; olayFiltresi: string[]; retryProfili: RetryProfili }) =>
       istek<Endpoint>(`/v1/endpointler/${id}`, { method: "PATCH", body: JSON.stringify(istegi) }),
     devreSifirla: (id: string) => istek<void>(`/v1/endpointler/${id}/devre-sifirla`, { method: "POST" }),
+    secretRotasyonuBaslat: (id: string) =>
+      istek<SecretRotasyonYaniti>(`/v1/endpointler/${id}/secret-rotasyon`, { method: "POST" }),
   },
 };

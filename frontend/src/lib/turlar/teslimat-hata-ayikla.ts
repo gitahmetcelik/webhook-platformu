@@ -1,0 +1,93 @@
+import type { Tur } from "./tipler";
+
+export const teslimatHataAyiklaTuru: Tur = {
+  kimlik: "teslimat-hata-ayikla",
+  baslik: "Teslimatta hata ayıklama",
+  aciklama: "Bir sorun yüzünden bu ekrana geldiyseniz — sırayla bakın.",
+  adimlar: [
+    {
+      kimlik: "hata-ayikla.durum",
+      rota: null,
+      anchor: "teslimat-durum-rozeti",
+      yerlesim: "bottom",
+      baslik: "Nerede takıldı",
+      metin:
+        "HATALI yeniden denenecek demektir; DLQ denemeler tükendi; KALICI_HATA hiç denenmedi (4xx). Üçü çok farklı şeyler.",
+      ilerleme: "ileri-butonu",
+      etkilesim: "engelli",
+    },
+    {
+      kimlik: "hata-ayikla.motor-ozeti",
+      rota: null,
+      anchor: "teslimat-motor-ozeti",
+      yerlesim: "left",
+      baslik: "Motor ne diyor",
+      metin:
+        "Ürün \"başarısız teslimat\" derken motor \"tamamlanmış görev\" diyebilir — kalıcı hatada bu normaldir. İki tarafı da burada görürsünüz.",
+      ilerleme: "ileri-butonu",
+      etkilesim: "engelli",
+    },
+    {
+      kimlik: "hata-ayikla.timeline",
+      rota: null,
+      anchor: "teslimat-timeline",
+      yerlesim: "left",
+      baslik: "Deneme geçmişi",
+      metin: "Her deneme: zaman, HTTP kodu, süre. Kalıbı görmek çoğu zaman cevabı verir.",
+      ilerleme: "ileri-butonu",
+      etkilesim: "engelli",
+    },
+    {
+      kimlik: "hata-ayikla.backoff",
+      rota: null,
+      anchor: "teslimat-backoff-bilgisi",
+      yerlesim: "left",
+      baslik: "Sonraki deneme",
+      metin: "Retry profiline göre hesaplanan bekleme. Beklemeyi kısaltamazsınız ama ne zaman olacağını bilirsiniz.",
+      ilerleme: "ileri-butonu",
+      etkilesim: "engelli",
+    },
+    {
+      kimlik: "hata-ayikla.yanit-govdesi",
+      rota: null,
+      anchor: "teslimat-yanit-govdesi",
+      yerlesim: "top",
+      baslik: "Alıcı ne döndü",
+      metin: "Yanıt gövdesi burada. 4xx aldıysanız sorun büyük olasılıkla alıcı tarafında.",
+      ilerleme: "ileri-butonu",
+      etkilesim: "engelli",
+    },
+    {
+      kimlik: "hata-ayikla.curl",
+      rota: null,
+      anchor: "teslimat-curl-kopyala",
+      yerlesim: "top",
+      baslik: "Kendi terminalinizde",
+      metin: "Aynı isteği birebir cURL olarak kopyalar — sorunu yerelde tekrar üretmenin en hızlı yolu.",
+      ilerleme: "ileri-butonu",
+      etkilesim: "engelli",
+    },
+    {
+      kimlik: "hata-ayikla.trace-id",
+      rota: null,
+      anchor: "teslimat-trace-id",
+      yerlesim: "bottom",
+      baslik: "Trace id",
+      metin:
+        "Bu id hem olayda hem ondan doğan tüm teslimatlarda aynıdır. Loglarda \"bu event'e ne oldu\"nun tek cevabı.",
+      ilerleme: "ileri-butonu",
+      etkilesim: "engelli",
+    },
+    {
+      kimlik: "hata-ayikla.yeniden-gonder",
+      rota: null,
+      anchor: "teslimat-yeniden-gonder",
+      yerlesim: "top",
+      baslik: "Yeniden gönderim",
+      metin:
+        "Yalnız DLQ ve KALICI_HATA durumundan. Yeni bir teslimat satırı üretir, eskisini silmez — geçmiş korunur.",
+      ilerleme: "ileri-butonu",
+      etkilesim: "engelli",
+    },
+  ],
+};

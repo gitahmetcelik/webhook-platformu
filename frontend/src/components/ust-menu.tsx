@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Activity, BarChart3, CircleHelp, ClipboardList, LogOut, Radio, Send, Webhook } from "lucide-react";
+import { Activity, BarChart3, ClipboardList, LogOut, Radio, Send, Webhook } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/auth-provider";
 import { Button } from "@/components/ui/button";
 import { TemaAnahtari } from "@/components/tema-anahtari";
+import { YardimMenusu } from "@/components/tur/yardim-menusu";
 
 const baglantilar = [
   { href: "/olaylar", etiket: "Olaylar", icon: Activity },
@@ -65,15 +66,7 @@ export function UstMenu() {
             </span>
           )}
           <TemaAnahtari />
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            data-tur="menu-yardim"
-            title="Tanıtım turunu başlat"
-            onClick={() => window.dispatchEvent(new Event("webhook-platformu:tur-baslat"))}
-          >
-            <CircleHelp className="size-4" />
-          </Button>
+          <YardimMenusu />
           <Button variant="outline" size="sm" onClick={cikisYap}>
             <LogOut className="size-4" />
             Çıkış

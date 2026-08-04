@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 export function SecretGosterDialog({ secret, onOpenChange }: { secret: string | null; onOpenChange: () => void }) {
   return (
     <Dialog open={secret !== null} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent data-tur="endpoint-secret-goster">
         <DialogHeader>
           <DialogTitle>İmza Secret&apos;ı</DialogTitle>
           <DialogDescription>

@@ -161,6 +161,20 @@
   /* durum renkleri değişmez — dört renk de koyu yüzeyde ≥3:1 */
 }
 
+.tur-maske-delik {
+  transition:
+    x var(--sure-yavas) var(--egri-standart),
+    y var(--sure-yavas) var(--egri-standart),
+    width var(--sure-yavas) var(--egri-standart),
+    height var(--sure-yavas) var(--egri-standart);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tur-maske-delik {
+    transition: none;
+  }
+}
+
 @keyframes sparkline-cizim {
   to {
     stroke-dashoffset: 0;

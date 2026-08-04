@@ -57,7 +57,7 @@ export default function TestAraciSayfasi() {
 
       <Card>
         <CardContent className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-1.5" data-tur="test-senaryo-secimi">
             <Label>Olay tipi</Label>
             <Select
               value={tip}
@@ -80,7 +80,7 @@ export default function TestAraciSayfasi() {
             </Select>
           </div>
 
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-1.5" data-tur="test-payload-editoru">
             <Label htmlFor="payload">Payload (JSON)</Label>
             <Textarea
               id="payload"

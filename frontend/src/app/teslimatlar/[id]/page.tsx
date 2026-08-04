@@ -61,7 +61,7 @@ export default function TeslimatDetaySayfasi() {
     <div className="flex flex-col gap-6">
       <div className="flex items-start justify-between">
         <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3" data-tur="teslimat-durum-rozeti">
             <TeslimatDurumRozeti durum={teslimat.durum} />
             <span className="font-mono text-sm text-muted-foreground">{olayTipi}</span>
           </div>
@@ -72,7 +72,7 @@ export default function TeslimatDetaySayfasi() {
             Toplam işlem süresi: {toplamSureMs}ms · {denemeler.length} deneme
           </p>
           {teslimat.anaTeslimatId && (
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground" data-tur="teslimat-ana-teslimat">
               Yeniden gönderim —{" "}
               <a href={`/teslimatlar/${teslimat.anaTeslimatId}`} className="underline">
                 orijinal teslimat
@@ -80,7 +80,7 @@ export default function TeslimatDetaySayfasi() {
             </p>
           )}
           {motorGorevOzeti && (
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground" data-tur="teslimat-motor-ozeti">
               Motor: {motorGorevOzeti.durum} · deneme {motorGorevOzeti.denemeSayisi}
             </p>
           )}
@@ -88,7 +88,7 @@ export default function TeslimatDetaySayfasi() {
               olusmadigi icin oradan okunamiyor, ayrica ayni olaydan dogan tum teslimatlarda
               AYNI oldugu icin loglarda tek sorguyla hepsi bulunabiliyor (bkz Faz 5.2). */}
           {teslimat.traceId && (
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground" data-tur="teslimat-trace-id">
               Trace:{" "}
               <button
                 type="button"
@@ -105,22 +105,32 @@ export default function TeslimatDetaySayfasi() {
           )}
         </div>
         {yenidenGonderilebilir && (
-          <Button onClick={() => yenidenGonderMutasyonu.mutate()} disabled={yenidenGonderMutasyonu.isPending}>
+          <Button
+            data-tur="teslimat-yeniden-gonder"
+            onClick={() => yenidenGonderMutasyonu.mutate()}
+            disabled={yenidenGonderMutasyonu.isPending}
+          >
             {yenidenGonderMutasyonu.isPending ? "Gönderiliyor…" : "Yeniden Gönder"}
           </Button>
         )}
       </div>
 
-      <PayloadInceleyici payload={olayPayload} curlHedefUrl={endpointUrl} />
+      <div data-tur="teslimat-payload">
+        <PayloadInceleyici payload={olayPayload} curlHedefUrl={endpointUrl} />
+      </div>
 
       <div>
         <h2 className="mb-2 text-sm font-medium">Deneme Timeline&apos;ı</h2>
         {denemeler.length === 0 ? (
           <p className="text-sm text-muted-foreground">Henüz bir deneme yapılmadı.</p>
         ) : (
-          <Accordion className="rounded-md border">
+          <Accordion className="rounded-md border" data-tur="teslimat-timeline">
             {denemeler.map((deneme, i) => (
-              <AccordionItem key={deneme.denemeNo} value={String(deneme.denemeNo)}>
+              <AccordionItem
+                key={deneme.denemeNo}
+                value={String(deneme.denemeNo)}
+                data-tur={i === 0 ? "teslimat-deneme-satiri" : undefined}
+              >
                 <AccordionTrigger className="px-3 hover:no-underline">
                   <div className="flex flex-1 items-center gap-4 text-sm">
                     <span className="w-16 text-muted-foreground">#{deneme.denemeNo}</span>
@@ -130,7 +140,7 @@ export default function TeslimatDetaySayfasi() {
                     <HttpDurumRozeti durum={deneme.httpDurum} />
                     <span className="text-muted-foreground">{deneme.sureMs ?? "—"}ms</span>
                     {i < denemeler.length - 1 && (
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-xs text-muted-foreground" data-tur={i === 0 ? "teslimat-backoff-bilgisi" : undefined}>
                         sonraki denemeye kadar: {saniyeFarki(deneme.istekZamani, denemeler[i + 1].istekZamani)}
                       </span>
                     )}
@@ -142,7 +152,7 @@ export default function TeslimatDetaySayfasi() {
                       <p className="text-destructive">Hata: {deneme.hata}</p>
                     )}
                     {deneme.yanitGovdesi && (
-                      <div>
+                      <div data-tur={i === 0 ? "teslimat-yanit-govdesi" : undefined}>
                         <p className="mb-1 font-medium text-muted-foreground">Alınan yanıt gövdesi</p>
                         <pre className="overflow-x-auto rounded bg-muted/50 p-2">{deneme.yanitGovdesi}</pre>
                       </div>

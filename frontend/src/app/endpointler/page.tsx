@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Plus, RotateCcw, Radio, SquarePen } from "lucide-react";
+import { KeyRound, Plus, RotateCcw, Radio, SquarePen } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,11 +14,14 @@ import { EndpointFormDialog } from "@/components/endpoint-form-dialog";
 import { SaglikSkoru } from "@/components/saglik-skoru";
 import { SecretGosterDialog } from "@/components/secret-goster-dialog";
 import { useAktifUygulama } from "@/components/uygulama-provider";
+import { useAuth } from "@/components/auth-provider";
 import { api } from "@/lib/api";
+import { turTamamlandiMi } from "@/lib/tur";
 import type { Endpoint } from "@/lib/types";
 
 export default function EndpointlerSayfasi() {
   const { uygulama } = useAktifUygulama();
+  const { organizasyon } = useAuth();
   const queryClient = useQueryClient();
   const [formAcik, setFormAcik] = useState(false);
   const [duzenlenecek, setDuzenlenecek] = useState<Endpoint | undefined>(undefined);
@@ -35,6 +38,19 @@ export default function EndpointlerSayfasi() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["endpointler"] });
       toast.success("Devre sıfırlandı, bekleyen teslimatlar kuyruğa alındı");
+    },
+    onError: (hata: Error) => toast.error(hata.message),
+  });
+
+  const secretRotasyonMutasyonu = useMutation({
+    mutationFn: (id: string) => api.endpointler.secretRotasyonuBaslat(id),
+    onSuccess: (yanit) => {
+      setGosterilecekSecret(yanit.secret);
+      // §10.6 — "ilk tıklamada" görev tetikli tur: daha önce görülmediyse başlatılır.
+      if (organizasyon && !turTamamlandiMi(organizasyon.id, "secret-rotasyonu")) {
+        window.dispatchEvent(new CustomEvent("webhook-platformu:tur-baslat", { detail: "secret-rotasyonu" }));
+      }
+      toast.success("Yeni secret üretildi — eski secret 24 saat daha geçerli");
     },
     onError: (hata: Error) => toast.error(hata.message),
   });
@@ -88,8 +104,8 @@ export default function EndpointlerSayfasi() {
                   </TableCell>
                 </TableRow>
               )}
-              {data?.map((endpoint) => (
-                <TableRow key={endpoint.id}>
+              {data?.map((endpoint, i) => (
+                <TableRow key={endpoint.id} data-tur={i === 0 ? "endpoint-satir" : undefined}>
                   <TableCell className="font-mono text-sm">{endpoint.url}</TableCell>
                   <TableCell>
                     {endpoint.olayFiltresi.length === 0 ? (
@@ -110,20 +126,21 @@ export default function EndpointlerSayfasi() {
                   <TableCell className="text-sm tabular-nums">
                     {endpoint.basariOraniSon24Saat === null ? "—" : `%${endpoint.basariOraniSon24Saat.toFixed(0)}`}
                   </TableCell>
-                  <TableCell className="text-sm">
+                  <TableCell className="text-sm" data-tur={i === 0 ? "endpoint-saglik-skoru" : undefined}>
                     <SaglikSkoru
                       skor={endpoint.saglikSkoru}
                       uyariAktif={endpoint.saglikUyarisiAktif}
                       ortalamaGecikmeMs={endpoint.ortalamaGecikmeMs}
                     />
                   </TableCell>
-                  <TableCell>
+                  <TableCell data-tur={i === 0 ? "endpoint-devre-rozeti" : undefined}>
                     <DevreDurumRozeti durum={endpoint.devreDurumu} />
                   </TableCell>
                   <TableCell className="flex justify-end gap-2">
                     <Button
                       size="sm"
                       variant="outline"
+                      data-tur={i === 0 ? "endpoint-duzenle" : undefined}
                       onClick={() => {
                         setDuzenlenecek(endpoint);
                         setFormAcik(true);
@@ -132,10 +149,21 @@ export default function EndpointlerSayfasi() {
                       <SquarePen className="size-4" />
                       Düzenle
                     </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      data-tur={i === 0 ? "endpoint-secret-rotasyon" : undefined}
+                      disabled={secretRotasyonMutasyonu.isPending}
+                      onClick={() => secretRotasyonMutasyonu.mutate(endpoint.id)}
+                    >
+                      <KeyRound className="size-4" />
+                      Secret Rotasyonu
+                    </Button>
                     {endpoint.devreDurumu === "ACIK" && (
                       <Button
                         size="sm"
                         variant="destructive"
+                        data-tur={i === 0 ? "endpoint-devre-sifirla" : undefined}
                         disabled={devreSifirlaMutasyonu.isPending}
                         onClick={() => devreSifirlaMutasyonu.mutate(endpoint.id)}
                       >

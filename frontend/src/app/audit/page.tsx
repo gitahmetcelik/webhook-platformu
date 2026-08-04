@@ -53,8 +53,8 @@ export default function AuditSayfasi() {
                   </TableCell>
                 </TableRow>
               )}
-              {data?.content.map((kayit) => (
-                <TableRow key={kayit.id}>
+              {data?.content.map((kayit, i) => (
+                <TableRow key={kayit.id} data-tur={i === 0 ? "audit-satir" : undefined}>
                   <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
                     {new Date(kayit.olusturulma).toLocaleString("tr-TR")}
                   </TableCell>

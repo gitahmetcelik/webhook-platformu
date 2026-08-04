@@ -51,7 +51,7 @@ export default function KullanimSayfasi() {
       <Card>
         <CardContent>
           {organizasyon && (
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2" data-tur="kullanim-kota-cubugu">
               <div className="flex items-center justify-between text-sm">
                 <span>
                   Bu ay: <strong className="tabular-nums">{organizasyon.buAyKullanim}</strong> /{" "}
@@ -70,7 +70,7 @@ export default function KullanimSayfasi() {
         </CardContent>
       </Card>
 
-      <Card size="sm">
+      <Card size="sm" data-tur="kullanim-gunluk-dokum">
         <CardHeader>
           <CardTitle>Günlük dağılım (bu ay)</CardTitle>
         </CardHeader>
@@ -154,7 +154,12 @@ export default function KullanimSayfasi() {
                   </TableCell>
                   <TableCell>
                     {!a.iptalEdilme && (
-                      <Button variant="outline" size="sm" onClick={() => iptalMutasyonu.mutate(a.id)}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        data-tur="kullanim-anahtar-iptal"
+                        onClick={() => iptalMutasyonu.mutate(a.id)}
+                      >
                         <Trash2 className="size-4" />
                         İptal Et
                       </Button>

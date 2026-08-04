@@ -91,11 +91,11 @@ export function EndpointFormDialog({ uygulamaId, duzenlenecekEndpoint, acik, onO
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-1.5" data-tur="endpoint-form-url">
             <Label htmlFor="url">Hedef URL</Label>
             <Input id="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://..." />
           </div>
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-1.5" data-tur="endpoint-form-filtre">
             <Label htmlFor="olay-filtresi">Olay filtresi (virgülle ayrılmış, boş = tümü)</Label>
             <Input
               id="olay-filtresi"
@@ -104,7 +104,7 @@ export function EndpointFormDialog({ uygulamaId, duzenlenecekEndpoint, acik, onO
               placeholder="siparis.olusturuldu, odeme.basarili"
             />
           </div>
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-1.5" data-tur="endpoint-form-retry-profili">
             <Label>Retry profili</Label>
             <Select value={retryProfili} onValueChange={(v) => setRetryProfili(v as RetryProfili)}>
               <SelectTrigger>

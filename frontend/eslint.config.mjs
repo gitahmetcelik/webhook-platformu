@@ -5,6 +5,15 @@ import nextTs from "eslint-config-next/typescript";
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
+  {
+    rules: {
+      // Bu kod tabanında localStorage sunucuda yok diye mount-sonrası hidrasyon deseni
+      // (useState(false) + useEffect(() => setState(true), [])) tekrar eden, bilinçli bir
+      // kalıp (bkz auth-provider.tsx, uygulama-provider.tsx yorumları). Kural bu deseni de
+      // "cascading render" riski olarak işaretliyor; hata yerine uyarıya indirildi.
+      "react-hooks/set-state-in-effect": "warn",
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:

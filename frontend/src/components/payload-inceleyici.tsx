@@ -2,6 +2,7 @@
 
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { curlOlustur } from "@/lib/curl";
 
 function guzelJson(ham: string): string {
   try {
@@ -19,8 +20,14 @@ async function panoyaKopyala(metin: string, basariMesaji: string) {
 export function PayloadInceleyici({ payload, curlHedefUrl }: { payload: string; curlHedefUrl?: string }) {
   const guzel = guzelJson(payload);
 
+  // Kabuk metakarakteri escape'li (§13.F/13.D — komut enjeksiyonu). Payload üçüncü taraf
+  // içeriği (abone endpoint'ine gönderilecek), ham birleştirme yasak.
   const curlKomutu = curlHedefUrl
-    ? `curl -X POST "${curlHedefUrl}" \\\n  -H "Content-Type: application/json" \\\n  -d '${payload}'`
+    ? curlOlustur({
+        url: curlHedefUrl,
+        basliklar: { "Content-Type": "application/json" },
+        govde: payload,
+      })
     : null;
 
   return (
@@ -32,7 +39,12 @@ export function PayloadInceleyici({ payload, curlHedefUrl }: { payload: string; 
             Kopyala
           </Button>
           {curlKomutu && (
-            <Button size="sm" variant="ghost" onClick={() => panoyaKopyala(curlKomutu, "curl komutu kopyalandı")}>
+            <Button
+              size="sm"
+              variant="ghost"
+              data-tur="teslimat-curl-kopyala"
+              onClick={() => panoyaKopyala(curlKomutu, "curl komutu kopyalandı")}
+            >
               curl olarak kopyala
             </Button>
           )}
