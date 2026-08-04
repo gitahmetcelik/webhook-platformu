@@ -53,7 +53,7 @@ public class UygulamaEndpointController {
     public List<EndpointYaniti> listele(@PathVariable UUID uygulamaId) {
         uygulamaDogrula(uygulamaId);
         return endpointRepository.findByUygulamaId(uygulamaId).stream()
-                .map(endpoint -> EndpointYaniti.of(endpoint, saglikHesaplayici.basariOraniSon24Saat(endpoint)))
+                .map(endpoint -> EndpointYaniti.of(endpoint, saglikHesaplayici.hesapla(endpoint)))
                 .toList();
     }
 

@@ -33,8 +33,6 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.RabbitMQContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.images.builder.ImageFromDockerfile;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
 /**
@@ -45,24 +43,25 @@ import org.testcontainers.utility.DockerImageName;
  * <p>Org/uygulama/endpoint/API anahtari icin REST API yok (bkz {@code VeriTohumlayici}) - bu
  * sinif ayni deseni (repository/servis'e dogrudan erisim) testler icin tekrarliyor. Endpoint
  * OLUSTURMA gercek HTTP uzerinden yapiliyor (UygulamaEndpointController'i da test etsin diye).
+ *
+ * <p><b>Container'lar SINGLETON (bilincli olarak {@code @Testcontainers}/{@code @Container}
+ * KULLANILMIYOR):</b> o anotasyonlar container'lari her test SINIFI icin basdatip sinif bitince
+ * DURDURUYOR, ama Spring test context'i cache'lendigi icin ikinci test sinifi ayni context'i -
+ * yani olmus container'in JDBC URL'ini - yeniden kullaniyor ve tum testler
+ * "Could not open JPA EntityManager for transaction" ile patliyor (gercekten yasandi). Ayrica
+ * ayni imajlari 3 kez basdatmak suiteyi ~5 kat yavaslatiyordu. Burada container'lar bir kez
+ * static blokta baslatiliyor ve hic durdurulmuyor - JVM cikisinda Ryuk temizliyor.</p>
+ *
+ * <p>{@code @AutoConfigureObservability} da bu ortak sinifta: alt siniflardan sadece birinde
+ * olsaydi o sinif AYRI bir Spring context'i zorlar (context cache anahtari degisir), yani
+ * yeniden baslatma maliyeti + yukaridaki container tuzagi geri gelirdi.</p>
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Testcontainers
+@org.springframework.boot.test.autoconfigure.actuate.observability.AutoConfigureObservability
 public abstract class UctanUcaOrtakAyarlar {
 
     protected static final Duration BEKLEME_ZAMAN_ASIMI = Duration.ofSeconds(45);
     protected static final Duration BEKLEME_ARALIGI = Duration.ofMillis(300);
-
-    @Container
-    static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16")
-            .withDatabaseName("webhook_platformu")
-            .withUsername("webhook")
-            .withPassword("webhook_sifre");
-
-    @Container
-    static final RabbitMQContainer rabbitmq = new RabbitMQContainer(
-            DockerImageName.parse("heidiks/rabbitmq-delayed-message-exchange:3.13.0-management")
-                    .asCompatibleSubstituteFor("rabbitmq"));
 
     /**
      * test-alici'nin imza dogrulamasi tek bir WEBHOOK_SECRET env degiskenine karsi calisiyor
@@ -73,13 +72,27 @@ public abstract class UctanUcaOrtakAyarlar {
      */
     protected static final String SABIT_IMZA_SECRET = "e2e-sabit-imza-secreti-01234567";
 
-    @Container
+    static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16")
+            .withDatabaseName("webhook_platformu")
+            .withUsername("webhook")
+            .withPassword("webhook_sifre");
+
+    static final RabbitMQContainer rabbitmq = new RabbitMQContainer(
+            DockerImageName.parse("heidiks/rabbitmq-delayed-message-exchange:3.13.0-management")
+                    .asCompatibleSubstituteFor("rabbitmq"));
+
     static final org.testcontainers.containers.GenericContainer<?> testAlici =
             new org.testcontainers.containers.GenericContainer<>(
                     new ImageFromDockerfile().withFileFromPath(".", Paths.get("../test-alici")))
                     .withExposedPorts(4000)
                     .withEnv("WEBHOOK_SECRET", SABIT_IMZA_SECRET)
                     .waitingFor(Wait.forHttp("/saglik").forStatusCode(200));
+
+    static {
+        postgres.start();
+        rabbitmq.start();
+        testAlici.start();
+    }
 
     @DynamicPropertySource
     static void ozellikler(DynamicPropertyRegistry registry) {
@@ -90,6 +103,10 @@ public abstract class UctanUcaOrtakAyarlar {
         registry.add("spring.rabbitmq.port", () -> rabbitmq.getMappedPort(5672));
         registry.add("spring.rabbitmq.username", () -> "guest");
         registry.add("spring.rabbitmq.password", () -> "guest");
+        // Saglik izleyicisinin periyodik dongüsu (varsayilan 60sn) testlerin ortasinda
+        // tetiklenirse uyari/audit sayan testleri rastgele bozar - testler kontrolu zaten
+        // dogrudan cagiriyor (bkz SaglikSkoruTestleri), periyodik tetikleme devre disi.
+        registry.add("webhook.saglik-kontrol-araligi", () -> "PT24H");
     }
 
     @Autowired

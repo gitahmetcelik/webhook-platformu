@@ -21,13 +21,13 @@ import org.springframework.http.ResponseEntity;
  * boyle gorundugunu dogruluyor - Micrometer'in nokta->alt-cizgi donusumu, counter'a {@code _total},
  * timer'a {@code _seconds_bucket} eklemesi gibi kurallar varsayimla birakilmiyor.
  *
- * <p>{@code @AutoConfigureObservability} ZORUNLU: Spring Boot testlerde metrik/trace export'unu
- * varsayilan olarak kapatiyor ({@code management.defaults.metrics.export.enabled=false}), bu da
- * PrometheusMeterRegistry'nin hic olusmamasina ve {@code /actuator/prometheus}'un 404 donmesine
- * yol aciyor - uygulama yapilandirmasi dogru olsa bile (gercekten calistirilinca bulundu:
- * /actuator kok linkleri sadece health+info gosteriyordu).</p>
+ * <p>Bu testlerin calisabilmesi {@code @AutoConfigureObservability}'ye bagli (bkz
+ * {@link UctanUcaOrtakAyarlar}): Spring Boot testlerde metrik/trace export'unu varsayilan
+ * olarak kapatiyor ({@code management.defaults.metrics.export.enabled=false}), bu da
+ * PrometheusMeterRegistry'nin hic olusmamasina ve {@code /actuator/prometheus}'un 404
+ * donmesine yol aciyor - uygulama yapilandirmasi dogru olsa bile (gercekten calistirilinca
+ * bulundu: /actuator kok linkleri sadece health+info gosteriyordu).</p>
  */
-@org.springframework.boot.test.autoconfigure.actuate.observability.AutoConfigureObservability
 class GozlemlenebilirlikTestleri extends UctanUcaOrtakAyarlar {
 
     @BeforeEach

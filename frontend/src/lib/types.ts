@@ -66,6 +66,11 @@ export interface Endpoint {
   retryProfili: RetryProfili;
   ardisikHataSayisi: number;
   basariOraniSon24Saat: number | null;
+  ortalamaGecikmeMs: number | null;
+  /** 0-100; son 24 saatte hiç trafik yoksa null (bkz Faz 5.3). */
+  saglikSkoru: number | null;
+  saglikUyarisiAktif: boolean;
+  hizSiniriSn: number | null;
   olusturulma: string;
 }
 

@@ -64,6 +64,14 @@ public class Endpoint {
     @Column(name = "son_planlanan_zaman")
     private Instant sonPlanlananZaman;
 
+    /**
+     * Saglik skoru esigin altina dustugunde true olur (bkz Faz 5.3). Skorun kendisi
+     * saklanmiyor - bu bayrak sadece "uyari zaten uretildi mi" sorusunu cevapliyor, boylece
+     * periyodik kontrol ayni uyariyi tekrar tekrar yazmiyor.
+     */
+    @Column(name = "saglik_uyarisi_aktif", nullable = false)
+    private boolean saglikUyarisiAktif;
+
     protected Endpoint() {
     }
 
@@ -215,5 +223,21 @@ public class Endpoint {
     public void devreyiKapat() {
         this.devreDurumu = DevreDurumu.KAPALI;
         this.ardisikHataSayisi = 0;
+    }
+
+    public boolean isSaglikUyarisiAktif() {
+        return saglikUyarisiAktif;
+    }
+
+    /**
+     * Uyari durumunu gunceller. @return durum GERCEKTEN degistiyse true — cagiran taraf
+     * yalnizca gecis aninda audit kaydi yazsin diye (bkz {@code EndpointSaglikIzleyici}).
+     */
+    public boolean saglikUyarisiniGuncelle(boolean yeniDurum) {
+        if (this.saglikUyarisiAktif == yeniDurum) {
+            return false;
+        }
+        this.saglikUyarisiAktif = yeniDurum;
+        return true;
     }
 }

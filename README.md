@@ -71,6 +71,21 @@ CI (`.github/workflows/ci.yml`) bu suite'i her PR'da koşar. `motor-spring-start
 Packages'tan çekildiği için CI'ın `GH_PACKAGES_TOKEN` repo secret'ına ihtiyacı var
 (`read:packages` yetkili classic PAT).
 
+## Endpoint sağlık skoru
+
+Her endpoint için son 24 saatten canlı hesaplanan **0-100** skor: başarı oranının %70'i +
+ortalama gecikmenin %30'u (≤200ms tam puan, ≥5sn sıfır puan). Son 24 saatte hiç trafik yoksa
+skor `null` — bu "kötü" değil "bilinmiyor" demektir, uyarı da üretmez.
+
+Skor **70'in altına düştüğü an** organizasyona bir audit kaydı bırakılır
+(`SAGLIK_SKORU_DUSTU`), tekrar üstüne çıkınca `SAGLIK_SKORU_DUZELDI`. Uyarı yalnızca **geçiş
+anlarında** üretilir — endpoint üzerindeki bayrak sayesinde periyodik kontrol aynı uyarıyı
+tekrar tekrar yazmaz. Skor `/endpointler` sayfasında renkli olarak görünür.
+
+> Bildirim kanalı olarak e-posta değil audit/dashboard seçildi: bu üründe henüz kullanıcı/
+> e-posta modeli yok (dashboard oturumu bile API anahtarı yapıştırmayla çalışıyor), yani
+> gönderilecek bir adres yok. E-posta eklendiğinde aynı geçiş noktasına bağlanabilir.
+
 ## Gözlemlenebilirlik
 
 **Trace id.** Bir giriş isteği (`POST .../olaylar`) tek bir trace id üretir; bu id hem olaya

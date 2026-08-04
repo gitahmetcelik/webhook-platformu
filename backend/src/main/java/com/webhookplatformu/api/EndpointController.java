@@ -64,7 +64,7 @@ public class EndpointController {
     @GetMapping("/{id}")
     public EndpointYaniti detay(@PathVariable UUID id) {
         Endpoint endpoint = bul(id);
-        return EndpointYaniti.of(endpoint, saglikHesaplayici.basariOraniSon24Saat(endpoint));
+        return EndpointYaniti.of(endpoint, saglikHesaplayici.hesapla(endpoint));
     }
 
     @PatchMapping("/{id}")
@@ -75,7 +75,7 @@ public class EndpointController {
         String[] filtre = istek.olayFiltresi() != null ? istek.olayFiltresi() : endpoint.getOlayFiltresi();
         endpoint.guncelle(istek.url(), filtre, profil, istek.hizSiniriSn());
         endpointRepository.save(endpoint);
-        return EndpointYaniti.of(endpoint, saglikHesaplayici.basariOraniSon24Saat(endpoint));
+        return EndpointYaniti.of(endpoint, saglikHesaplayici.hesapla(endpoint));
     }
 
     @PostMapping("/{id}/devre-sifirla")
