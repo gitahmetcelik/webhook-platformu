@@ -82,7 +82,25 @@ export default function TeslimatDetaySayfasi() {
           {motorGorevOzeti && (
             <p className="text-xs text-muted-foreground">
               Motor: {motorGorevOzeti.durum} · deneme {motorGorevOzeti.denemeSayisi}
-              {motorGorevOzeti.traceId && ` · trace ${motorGorevOzeti.traceId}`}
+            </p>
+          )}
+          {/* Teslimatin kendi trace id'si (motorunki degil): devre acikken motor gorevi hic
+              olusmadigi icin oradan okunamiyor, ayrica ayni olaydan dogan tum teslimatlarda
+              AYNI oldugu icin loglarda tek sorguyla hepsi bulunabiliyor (bkz Faz 5.2). */}
+          {teslimat.traceId && (
+            <p className="text-xs text-muted-foreground">
+              Trace:{" "}
+              <button
+                type="button"
+                className="cursor-pointer font-mono underline"
+                title="Panoya kopyala"
+                onClick={() => {
+                  navigator.clipboard.writeText(teslimat.traceId!);
+                  toast.success("Trace id kopyalandı");
+                }}
+              >
+                {teslimat.traceId}
+              </button>
             </p>
           )}
         </div>

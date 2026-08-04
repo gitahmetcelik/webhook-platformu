@@ -36,14 +36,25 @@ public class TeslimatGonderimYardimcisi {
     private final SifrelemeServisi sifrelemeServisi;
     private final HmacImzalayici hmacImzalayici;
     private final TeslimatDenemesiRepository teslimatDenemesiRepository;
+    private final TeslimatMetrikleri teslimatMetrikleri;
     private final HttpClient httpClient;
 
     public TeslimatGonderimYardimcisi(SifrelemeServisi sifrelemeServisi, HmacImzalayici hmacImzalayici,
-                                       TeslimatDenemesiRepository teslimatDenemesiRepository) {
+                                       TeslimatDenemesiRepository teslimatDenemesiRepository,
+                                       TeslimatMetrikleri teslimatMetrikleri) {
         this.sifrelemeServisi = sifrelemeServisi;
         this.hmacImzalayici = hmacImzalayici;
         this.teslimatDenemesiRepository = teslimatDenemesiRepository;
-        this.httpClient = HttpClient.newBuilder().connectTimeout(HTTP_ZAMAN_ASIMI).build();
+        this.teslimatMetrikleri = teslimatMetrikleri;
+        // HTTP_1_1'e SABITLENMIS bilincli: varsayilan (HTTP_2) JDK istemcisi her yeni baglantida
+        // once bir h2c (cleartext HTTP/2) yukseltme deniyor - musteri endpoint'leri (neredeyse
+        // hicbiri HTTP/2 sunmaz) bu yukseltmeyi 101 ile onaylamayinca istemci govdesiz/bozuk bir
+        // "yoklama" istegi gonderip ardindan gercek istegi AYRI bir fiziksel HTTP isteginde
+        // tekrar yolluyor - bizim tarafimizdan TEK bir deneme olarak gorunse de alici tarafta
+        // birden fazla fiziksel istek olarak goruluyor (Faz 5.1 Testcontainers testinde imza
+        // dogrulama senaryosunda gercekten yakalandi - govde bos geldigi icin HMAC uyusmuyordu).
+        this.httpClient = HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1)
+                .connectTimeout(HTTP_ZAMAN_ASIMI).build();
     }
 
     public Sonuc gonderVeKaydet(Teslimat teslimat, Endpoint endpoint, String payloadJson, int denemeNo)
@@ -72,6 +83,7 @@ public class TeslimatGonderimYardimcisi {
             if (durumKodu >= 200 && durumKodu < 300) {
                 deneme.basariliSonucla(durumKodu, yanit.body(), sureMs);
                 teslimatDenemesiRepository.save(deneme);
+                teslimatMetrikleri.denemeSuresiKaydet("basarili", Duration.ofMillis(sureMs));
                 return new Sonuc(SonucTuru.BASARILI, durumKodu, null);
             }
 
@@ -79,14 +91,17 @@ public class TeslimatGonderimYardimcisi {
             teslimatDenemesiRepository.save(deneme);
 
             if (KALICI_HATA_KODLARI.contains(durumKodu)) {
+                teslimatMetrikleri.denemeSuresiKaydet("kalici_hata", Duration.ofMillis(sureMs));
                 return new Sonuc(SonucTuru.KALICI_HATA, durumKodu, null);
             }
+            teslimatMetrikleri.denemeSuresiKaydet("gecici_hata", Duration.ofMillis(sureMs));
             String retryAfter = yanit.headers().firstValue("Retry-After").orElse(null);
             return new Sonuc(SonucTuru.GECICI_HATA, durumKodu, retryAfter);
         } catch (IOException e) {
             int sureMs = (int) (System.currentTimeMillis() - baslangicMs);
             deneme.hataliSonucla(e.getMessage(), null, sureMs);
             teslimatDenemesiRepository.save(deneme);
+            teslimatMetrikleri.denemeSuresiKaydet("gecici_hata", Duration.ofMillis(sureMs));
             return new Sonuc(SonucTuru.GECICI_HATA, null, null);
         }
     }

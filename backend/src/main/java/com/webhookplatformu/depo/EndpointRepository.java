@@ -11,4 +11,7 @@ public interface EndpointRepository extends JpaRepository<Endpoint, UUID> {
     List<Endpoint> findByUygulamaId(UUID uygulamaId);
 
     List<Endpoint> findByDevreDurumu(DevreDurumu devreDurumu);
+
+    /** Prometheus "acik devre sayisi" gauge'i icin (bkz Faz 5.2). */
+    long countByDevreDurumu(DevreDurumu devreDurumu);
 }

@@ -15,8 +15,14 @@ import org.hibernate.type.SqlTypes;
 @Table(name = "endpoint", schema = "webhook")
 public class Endpoint {
 
-    /** Devre kesici eşiği — bu kadar ardışık kalıcı hatadan sonra devre açılır (bkz Faz 2.4). */
-    public static final int DEVRE_ESIGI = 20;
+    /**
+     * Devre kesici eşiğinin varsayılanı — bu kadar ardışık kalıcı hatadan sonra devre açılır
+     * (bkz Faz 2.4). Gerçek eşik {@code webhook.devre-esigi} ile değiştirilebilir ve
+     * {@link #ardisikHataArtir(int)}'a parametre olarak geçirilir (bkz {@code
+     * DevreKesiciYardimcisi}) — demo/test senaryolarında 20 başarısız teslimat üretmek
+     * pratik olmadığı için.
+     */
+    public static final int VARSAYILAN_DEVRE_ESIGI = 20;
 
     @Id
     private UUID id;
@@ -63,6 +69,14 @@ public class Endpoint {
     /** Motora en son planlanan gonderim zamani - siradaki teslimatin ne zaman planlanacagini hesaplamak icin. */
     @Column(name = "son_planlanan_zaman")
     private Instant sonPlanlananZaman;
+
+    /**
+     * Saglik skoru esigin altina dustugunde true olur (bkz Faz 5.3). Skorun kendisi
+     * saklanmiyor - bu bayrak sadece "uyari zaten uretildi mi" sorusunu cevapliyor, boylece
+     * periyodik kontrol ayni uyariyi tekrar tekrar yazmiyor.
+     */
+    @Column(name = "saglik_uyarisi_aktif", nullable = false)
+    private boolean saglikUyarisiAktif;
 
     protected Endpoint() {
     }
@@ -187,9 +201,9 @@ public class Endpoint {
     }
 
     /** Kalıcı hatadan sonra çağrılır — eşiği aşarsa devreyi açar. @return devre yeni açıldıysa true. */
-    public boolean ardisikHataArtir() {
+    public boolean ardisikHataArtir(int devreEsigi) {
         this.ardisikHataSayisi++;
-        if (this.ardisikHataSayisi >= DEVRE_ESIGI && devreDurumu == DevreDurumu.KAPALI) {
+        if (this.ardisikHataSayisi >= devreEsigi && devreDurumu == DevreDurumu.KAPALI) {
             this.devreDurumu = DevreDurumu.ACIK;
             return true;
         }
@@ -215,5 +229,21 @@ public class Endpoint {
     public void devreyiKapat() {
         this.devreDurumu = DevreDurumu.KAPALI;
         this.ardisikHataSayisi = 0;
+    }
+
+    public boolean isSaglikUyarisiAktif() {
+        return saglikUyarisiAktif;
+    }
+
+    /**
+     * Uyari durumunu gunceller. @return durum GERCEKTEN degistiyse true — cagiran taraf
+     * yalnizca gecis aninda audit kaydi yazsin diye (bkz {@code EndpointSaglikIzleyici}).
+     */
+    public boolean saglikUyarisiniGuncelle(boolean yeniDurum) {
+        if (this.saglikUyarisiAktif == yeniDurum) {
+            return false;
+        }
+        this.saglikUyarisiAktif = yeniDurum;
+        return true;
     }
 }

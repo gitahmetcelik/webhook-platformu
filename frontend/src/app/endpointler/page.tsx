@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DevreDurumRozeti } from "@/components/devre-durum-rozeti";
 import { EndpointFormDialog } from "@/components/endpoint-form-dialog";
+import { SaglikSkoru } from "@/components/saglik-skoru";
 import { SecretGosterDialog } from "@/components/secret-goster-dialog";
 import { useAktifUygulama } from "@/components/uygulama-provider";
 import { api } from "@/lib/api";
@@ -59,6 +60,7 @@ export default function EndpointlerSayfasi() {
               <TableHead>Olay Filtresi</TableHead>
               <TableHead>Retry Profili</TableHead>
               <TableHead>Son 24sa Başarı</TableHead>
+              <TableHead>Sağlık Skoru</TableHead>
               <TableHead>Devre</TableHead>
               <TableHead />
             </TableRow>
@@ -66,7 +68,7 @@ export default function EndpointlerSayfasi() {
           <TableBody>
             {data.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground">
+                <TableCell colSpan={7} className="text-center text-muted-foreground">
                   Henüz endpoint yok.
                 </TableCell>
               </TableRow>
@@ -90,6 +92,13 @@ export default function EndpointlerSayfasi() {
                 <TableCell className="text-sm">{endpoint.retryProfili}</TableCell>
                 <TableCell className="text-sm">
                   {endpoint.basariOraniSon24Saat === null ? "—" : `%${endpoint.basariOraniSon24Saat.toFixed(0)}`}
+                </TableCell>
+                <TableCell className="text-sm">
+                  <SaglikSkoru
+                    skor={endpoint.saglikSkoru}
+                    uyariAktif={endpoint.saglikUyarisiAktif}
+                    ortalamaGecikmeMs={endpoint.ortalamaGecikmeMs}
+                  />
                 </TableCell>
                 <TableCell>
                   <DevreDurumRozeti durum={endpoint.devreDurumu} />

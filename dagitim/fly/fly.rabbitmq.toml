@@ -1,0 +1,31 @@
+# RabbitMQ - Fly'in yonetilen bir RabbitMQ servisi YOK, bu yuzden kendi app'i olarak
+# calisiyor. Gelistirmedekiyle AYNI imaj (delayed-message plugin'li) - motorun gecikmeli
+# yeniden deneme mekanizmasi bu plugin'e bagli.
+#
+#   fly apps create webhook-platformu-rabbitmq
+#   fly volumes create rabbitmq_data --size 1 -a webhook-platformu-rabbitmq -r fra
+#   fly secrets set RABBITMQ_DEFAULT_USER=webhook RABBITMQ_DEFAULT_PASS=... -a webhook-platformu-rabbitmq
+#   fly deploy -c dagitim/fly/fly.rabbitmq.toml
+
+app = "webhook-platformu-rabbitmq"
+primary_region = "fra"
+
+[build]
+  image = "heidiks/rabbitmq-delayed-message-exchange:3.13.0-management"
+
+[mounts]
+  source = "rabbitmq_data"
+  destination = "/var/lib/rabbitmq"
+
+# Disariya HTTP servisi ACILMIYOR - backend'e .internal (Fly ozel agi) uzerinden erisilir.
+# Yonetim arayuzune bakmak icin:  fly proxy 15672:15672 -a webhook-platformu-rabbitmq
+[[services]]
+  internal_port = 5672
+  protocol = "tcp"
+  auto_stop_machines = false      # kuyruk her zaman ayakta kalmali
+  auto_start_machines = true
+  min_machines_running = 1
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

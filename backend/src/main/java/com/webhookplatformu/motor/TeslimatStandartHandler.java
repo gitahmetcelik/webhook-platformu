@@ -8,6 +8,7 @@ import com.webhookplatformu.depo.TeslimatRepository;
 import com.webhookplatformu.servis.DevreKesiciYardimcisi;
 import com.webhookplatformu.servis.KullanimSayaciServisi;
 import com.webhookplatformu.servis.TeslimatGonderimYardimcisi;
+import com.webhookplatformu.servis.TeslimatMetrikleri;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -19,8 +20,9 @@ public class TeslimatStandartHandler extends TeslimatHandlerTemel {
                                     EndpointRepository endpointRepository, OlayRepository olayRepository,
                                     TeslimatGonderimYardimcisi gonderimYardimcisi,
                                     DevreKesiciYardimcisi devreKesiciYardimcisi,
-                                    KullanimSayaciServisi kullanimSayaciServisi) {
+                                    KullanimSayaciServisi kullanimSayaciServisi,
+                                    TeslimatMetrikleri teslimatMetrikleri) {
         super(teslimatRepository, teslimatDenemesiRepository, endpointRepository, olayRepository,
-                gonderimYardimcisi, devreKesiciYardimcisi, kullanimSayaciServisi);
+                gonderimYardimcisi, devreKesiciYardimcisi, kullanimSayaciServisi, teslimatMetrikleri);
     }
 }

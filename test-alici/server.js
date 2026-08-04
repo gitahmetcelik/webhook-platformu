@@ -21,7 +21,13 @@ const app = express();
 const PORT = process.env.PORT || 4000;
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || '';
 
-app.use(express.json());
+// express.json() BILINCLI OLARAK GLOBAL DEGIL - global oldugunda (Faz 2'de /varsayilan-mod
+// eklenirken oyle yapilmisti) Content-Type: application/json gelen /webhook isteklerinin
+// govdesini ONCE o tuketiyor, route'daki express.raw() body-parser'in req._body bayragini
+// gorup atliyor, Buffer.isBuffer(req.body) false donuyor ve ham govde bos kaliyor - imza
+// bos string uzerinden hesaplanip HER ZAMAN 'gecersiz' cikiyordu (Faz 5.1 Testcontainers
+// imza testinde yakalandi; Faz 1'de global express.raw vardi ve dogru calisiyordu).
+// Sadece JSON govdesi okuyan uc noktalara route seviyesinde ekleniyor.
 
 const alinanlar = [];
 const akisSayaclari = new Map();
@@ -110,7 +116,7 @@ app.get('/alinanlar', (req, res) => {
     res.json(alinanlar);
 });
 
-app.post('/varsayilan-mod', (req, res) => {
+app.post('/varsayilan-mod', express.json(), (req, res) => {
     varsayilanMod = { mod: req.body.mod || 'ok', esik: req.body.esik, dizi: req.body.dizi, ms: req.body.ms };
     console.log(`[test-alici] varsayilan mod degisti: ${JSON.stringify(varsayilanMod)}`);
     res.status(200).json(varsayilanMod);

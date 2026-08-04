@@ -9,6 +9,7 @@ import com.webhookplatformu.depo.TeslimatRepository;
 import com.webhookplatformu.servis.DevreKesiciYardimcisi;
 import com.webhookplatformu.servis.KullanimSayaciServisi;
 import com.webhookplatformu.servis.TeslimatGonderimYardimcisi;
+import com.webhookplatformu.servis.TeslimatMetrikleri;
 import com.webhookplatformu.servis.TeslimatGonderimYardimcisi.Sonuc;
 import com.webhookplatformu.varlik.Endpoint;
 import com.webhookplatformu.varlik.Olay;
@@ -39,13 +40,15 @@ public abstract class TeslimatHandlerTemel implements GorevHandler<TeslimatPaylo
     private final TeslimatGonderimYardimcisi gonderimYardimcisi;
     private final DevreKesiciYardimcisi devreKesiciYardimcisi;
     private final KullanimSayaciServisi kullanimSayaciServisi;
+    private final TeslimatMetrikleri teslimatMetrikleri;
 
     protected TeslimatHandlerTemel(TeslimatRepository teslimatRepository,
                                     TeslimatDenemesiRepository teslimatDenemesiRepository,
                                     EndpointRepository endpointRepository, OlayRepository olayRepository,
                                     TeslimatGonderimYardimcisi gonderimYardimcisi,
                                     DevreKesiciYardimcisi devreKesiciYardimcisi,
-                                    KullanimSayaciServisi kullanimSayaciServisi) {
+                                    KullanimSayaciServisi kullanimSayaciServisi,
+                                    TeslimatMetrikleri teslimatMetrikleri) {
         this.teslimatRepository = teslimatRepository;
         this.teslimatDenemesiRepository = teslimatDenemesiRepository;
         this.endpointRepository = endpointRepository;
@@ -53,6 +56,7 @@ public abstract class TeslimatHandlerTemel implements GorevHandler<TeslimatPaylo
         this.gonderimYardimcisi = gonderimYardimcisi;
         this.devreKesiciYardimcisi = devreKesiciYardimcisi;
         this.kullanimSayaciServisi = kullanimSayaciServisi;
+        this.teslimatMetrikleri = teslimatMetrikleri;
     }
 
     @Override
@@ -79,6 +83,7 @@ public abstract class TeslimatHandlerTemel implements GorevHandler<TeslimatPaylo
                 endpoint.ardisikHataSifirla();
                 endpointRepository.save(endpoint);
                 kullanimSayaciServisi.artir(teslimat.getOrganizasyonId(), true);
+                teslimatMetrikleri.teslimatSonuclandi("basarili");
                 yield null;
             }
             case KALICI_HATA -> {
@@ -88,6 +93,7 @@ public abstract class TeslimatHandlerTemel implements GorevHandler<TeslimatPaylo
                 teslimatRepository.save(teslimat);
                 devreKesiciYardimcisi.kaliciBasarisizlikBildir(endpoint);
                 kullanimSayaciServisi.artir(teslimat.getOrganizasyonId(), false);
+                teslimatMetrikleri.teslimatSonuclandi("kalici_hata");
                 yield null;
             }
             case GECICI_HATA -> {

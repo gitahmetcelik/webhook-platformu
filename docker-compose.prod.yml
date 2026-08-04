@@ -1,0 +1,139 @@
+# Tek komutla ayaga kalkan tam yigin (bkz Faz 5.5) - gelistirme docker-compose.yml'inden
+# farki: backend (api + worker) ve frontend de konteynerde, veritabani/kuyruk disariya
+# ACILMIYOR, sifreler .env.prod'dan zorunlu olarak okunuyor.
+#
+#   cp .env.prod.example .env.prod
+#   # .env.prod icindeki sifreleri ve WEBHOOK_SIFRELEME_ANAHTARI'ni doldur
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+#
+# backend imaji motor-spring-starter'i GitHub Packages'tan cekiyor (bkz Faz 5.0), bu yuzden
+# build sirasinda ~/.m2/settings.xml bir BuildKit secret'i olarak baglaniyor - README'deki
+# kimlik dogrulama adimi burada da gecerli.
+
+# AYRI PROJE ADI ZORUNLU: compose proje adini varsayilan olarak DIZIN adindan turetiyor, yani
+# bu dosya da gelistirme docker-compose.yml'i de "webhook-platformu" projesi olurdu - ayni
+# "postgres-data" volume'unu paylasirlardi. Postgres sifreyi yalnizca BOS bir veri dizinini
+# ilk kez baslatirken uyguladigi icin, gelistirme volume'u zaten doluyken prod sifresi hic
+# gecerli olmuyor ve backend "password authentication failed" ile acilmiyordu (gercekten
+# calistirilinca bulundu). Daha kotusu: prod yigini gelistirme verisinin uzerine otururdu.
+name: webhook-platformu-prod
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    # Port DISARIYA ACILMIYOR - sadece compose agi icinden erisilebilir.
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  rabbitmq:
+    image: heidiks/rabbitmq-delayed-message-exchange:3.13.0-management
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  backend-api:
+    build:
+      context: ./backend
+      secrets:
+        - maven_settings
+    environment:
+      SPRING_PROFILES_ACTIVE: api
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_DEFAULT_USER}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS}
+      WEBHOOK_SIFRELEME_ANAHTARI: ${WEBHOOK_SIFRELEME_ANAHTARI}
+      WEBHOOK_IZINLI_ORIGINLER: ${WEBHOOK_IZINLI_ORIGINLER}
+      # seed profili calistirilirsa uretilecek demo endpoint'i - konteyner aginda "localhost"
+      # backend'in KENDISI olacagi icin servis adi kullaniliyor (bkz VeriTohumlayici).
+      WEBHOOK_TOHUM_ENDPOINT_URL: http://test-alici:4000/webhook
+      # Bu makineye ozgu SERVER_PORT env degiskeni tuzagina karsi (bkz README) acikca sabitleniyor.
+      SERVER_PORT: 8080
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    depends_on:
+      postgres: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+    restart: unless-stopped
+
+  backend-worker:
+    build:
+      context: ./backend
+      secrets:
+        - maven_settings
+    environment:
+      SPRING_PROFILES_ACTIVE: worker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_DEFAULT_USER}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS}
+      WEBHOOK_SIFRELEME_ANAHTARI: ${WEBHOOK_SIFRELEME_ANAHTARI}
+      WEBHOOK_DEVRE_ESIGI: ${WEBHOOK_DEVRE_ESIGI:-20}
+      SERVER_PORT: 8081
+    depends_on:
+      postgres: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+    # Devam eden teslimatlar bitebilsin diye (worker'da timeout-per-shutdown-phase=60s).
+    stop_grace_period: 70s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # NEXT_PUBLIC_* build sirasinda gomuluyor - tarayicidan erisilebilen backend adresi
+        # olmali (compose ic ag adi "backend-api" DEGIL).
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    depends_on:
+      backend-api: { condition: service_healthy }
+    restart: unless-stopped
+
+  # Canli demoyu (bkz DEMO.md) konteyner icinde de calistirabilmek icin - gercek bir
+  # musteri endpoint'in varsa bu servisi kaldirabilirsin.
+  test-alici:
+    build:
+      context: ./test-alici
+    environment:
+      # Opsiyonel: seed'in bastigi "endpoint duz secret" degerini .env.prod'a yazarsan
+      # test-alici gelen imzayi da dogrular ve loglar (imza=gecerli / gecersiz).
+      WEBHOOK_SECRET: ${TEST_ALICI_WEBHOOK_SECRET:-}
+    ports:
+      - "${TEST_ALICI_PORT:-4000}:4000"
+    restart: unless-stopped
+
+secrets:
+  maven_settings:
+    file: ${MAVEN_SETTINGS_PATH:-~/.m2/settings.xml}
+
+volumes:
+  postgres-data:

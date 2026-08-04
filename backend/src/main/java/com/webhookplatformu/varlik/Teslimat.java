@@ -48,6 +48,15 @@ public class Teslimat {
     @Column(nullable = false)
     private Instant guncellenme;
 
+    /**
+     * Teslimati doguran istegin trace id'si. Motor da gorev basina bir trace tutuyor
+     * ({@code GorevOzeti.traceId}) ama devre acikken ({@link TeslimatDurumu#BEKLEMEDE})
+     * gorev hic olusmadigi icin oradan okunamiyor - ayrica bir olaydan dogan N teslimat
+     * motorda N ayri gorev, tek bir id ile izlenebilmesi icin burada tutuluyor (bkz Faz 5.2).
+     */
+    @Column(name = "trace_id")
+    private String traceId;
+
     protected Teslimat() {
     }
 
@@ -57,18 +66,20 @@ public class Teslimat {
      * {@code gorevGonderici.gonder()} çağrılırken zaten bilinmesi gereken bir değer — teslimat
      * id'si önce üretilip motora geçiliyor, dönen gorevId ile birlikte buraya veriliyor.
      */
-    public Teslimat(UUID id, UUID olayId, UUID endpointId, UUID organizasyonId, UUID gorevId) {
-        this(id, olayId, endpointId, organizasyonId, gorevId, null);
+    public Teslimat(UUID id, UUID olayId, UUID endpointId, UUID organizasyonId, UUID gorevId, String traceId) {
+        this(id, olayId, endpointId, organizasyonId, gorevId, null, traceId);
     }
 
     /** Bir DLQ yeniden-gönderiminden doğan teslimat için — {@code anaTeslimatId} eskiye bağlar. */
-    public Teslimat(UUID id, UUID olayId, UUID endpointId, UUID organizasyonId, UUID gorevId, UUID anaTeslimatId) {
+    public Teslimat(UUID id, UUID olayId, UUID endpointId, UUID organizasyonId, UUID gorevId, UUID anaTeslimatId,
+                     String traceId) {
         this.id = id;
         this.olayId = olayId;
         this.endpointId = endpointId;
         this.organizasyonId = organizasyonId;
         this.gorevId = gorevId;
         this.anaTeslimatId = anaTeslimatId;
+        this.traceId = traceId;
         this.durum = TeslimatDurumu.KUYRUKTA;
         Instant simdi = Instant.now();
         this.olusturulma = simdi;
@@ -76,12 +87,13 @@ public class Teslimat {
     }
 
     /** Devre açıkken oluşturulan, motora hiç gönderilmemiş bir teslimat. */
-    public static Teslimat beklemede(UUID id, UUID olayId, UUID endpointId, UUID organizasyonId) {
+    public static Teslimat beklemede(UUID id, UUID olayId, UUID endpointId, UUID organizasyonId, String traceId) {
         Teslimat teslimat = new Teslimat();
         teslimat.id = id;
         teslimat.olayId = olayId;
         teslimat.endpointId = endpointId;
         teslimat.organizasyonId = organizasyonId;
+        teslimat.traceId = traceId;
         teslimat.durum = TeslimatDurumu.BEKLEMEDE;
         Instant simdi = Instant.now();
         teslimat.olusturulma = simdi;
@@ -129,6 +141,10 @@ public class Teslimat {
 
     public Instant getGuncellenme() {
         return guncellenme;
+    }
+
+    public String getTraceId() {
+        return traceId;
     }
 
     public void durumGuncelle(TeslimatDurumu yeniDurum) {
