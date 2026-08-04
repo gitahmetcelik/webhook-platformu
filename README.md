@@ -71,6 +71,35 @@ CI (`.github/workflows/ci.yml`) bu suite'i her PR'da koşar. `motor-spring-start
 Packages'tan çekildiği için CI'ın `GH_PACKAGES_TOKEN` repo secret'ına ihtiyacı var
 (`read:packages` yetkili classic PAT).
 
+## Gözlemlenebilirlik
+
+**Trace id.** Bir giriş isteği (`POST .../olaylar`) tek bir trace id üretir; bu id hem olaya
+hem ondan doğan **tüm** teslimatlara yazılır, teslimat detay sayfasında görünür ve tek tıkla
+kopyalanabilir. Böylece "bu event'e ne oldu" sorusu, olayın kaç endpoint'e dağıldığından
+bağımsız olarak tek bir id ile hem UI'da hem loglarda cevaplanabilir.
+
+> Bu, `micrometer-tracing-bridge-brave` bağımlılığını gerektiriyor. Bridge olmadan `Tracer`
+> bean'i hiç oluşmuyor ve motorun `TraceBaglamServisi`'si her görev için rastgele bir UUID'ye
+> düşüyor — yani aynı olaydan doğan iki teslimat **farklı** trace id alıyordu (Faz 5.2'de
+> bulundu).
+
+**Metrikler** — `/actuator/prometheus`:
+
+| Metrik | Ne ölçer |
+|---|---|
+| `webhook_teslimat_sonuc_total{sonuc}` | Ürün seviyesinde teslimat sonucu (`basarili`/`kalici_hata`/`dlq`) — başarı oranı buradan türetilir |
+| `webhook_teslimat_suresi_seconds_bucket` | Tek bir HTTP teslimat denemesinin süresi (histogram → p50/p95) |
+| `webhook_devre_acik` | Devresi açık endpoint sayısı |
+| `gorev_kuyruk_derinlik{kuyruk}` | Motorun öncelik kuyrukları + DLQ derinliği |
+| `gorev_yeniden_deneme_total{tip}` | Motorun retry merdivenine düşen görevler |
+
+İlk üçü ürün seviyesinde, son ikisi motordan gelir — ayrım önemli: kalıcı hata motor için
+*başarıyla tamamlanmış* bir görev, ürün için *başarısız* bir teslimattır.
+
+Hazır Grafana panosu: `gozlemlenebilirlik/grafana-dashboard.json` (Grafana → Dashboards →
+Import). Pano bu metrik isimlerine göre yazıldığı için, isimlerin Prometheus çıktısında
+gerçekten böyle göründüğü `GozlemlenebilirlikTestleri` ile doğrulanıyor.
+
 ## Arayüz (dashboard) ne işe yarar, ne test eder
 
 Dashboard bu üründe bir demo aracı değil, ürünün kendisidir — Faz 2'de curl ile yapılan her

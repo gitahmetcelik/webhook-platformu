@@ -36,10 +36,15 @@ public class Olay {
     @Column(nullable = false)
     private Instant olusturulma;
 
+    /** Giris istegine ait trace id - ondan dogan tum teslimatlara da ayni deger yazilir (bkz Faz 5.2). */
+    @Column(name = "trace_id")
+    private String traceId;
+
     protected Olay() {
     }
 
-    public Olay(UUID uygulamaId, UUID organizasyonId, String tip, String payload, String disKaynakId) {
+    public Olay(UUID uygulamaId, UUID organizasyonId, String tip, String payload, String disKaynakId,
+                 String traceId) {
         this.id = UUID.randomUUID();
         this.uygulamaId = uygulamaId;
         this.organizasyonId = organizasyonId;
@@ -47,6 +52,7 @@ public class Olay {
         this.payload = payload;
         this.disKaynakId = disKaynakId;
         this.olusturulma = Instant.now();
+        this.traceId = traceId;
     }
 
     public UUID getId() {
@@ -75,5 +81,9 @@ public class Olay {
 
     public Instant getOlusturulma() {
         return olusturulma;
+    }
+
+    public String getTraceId() {
+        return traceId;
     }
 }

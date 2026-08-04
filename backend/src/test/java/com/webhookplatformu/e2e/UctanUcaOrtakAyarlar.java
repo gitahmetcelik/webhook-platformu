@@ -142,6 +142,26 @@ public abstract class UctanUcaOrtakAyarlar {
         return yeniKiraciOlustur(retryProfili, null, 10_000);
     }
 
+    /** Mevcut bir uygulamaya ikinci/ucuncu bir endpoint ekler (orn. tek olaydan N teslimat uretmek icin). */
+    protected UUID endpointEkle(Kiraci kiraci, RetryProfili retryProfili) {
+        var istek = new com.webhookplatformu.api.dto.EndpointOlusturmaIstegi(testAliciWebhookUrl(), null,
+                retryProfili, null);
+        ResponseEntity<com.webhookplatformu.api.dto.EndpointOlusturmaYaniti> yanit = restTemplate.exchange(
+                "/v1/uygulamalar/" + kiraci.uygulamaId() + "/endpointler", HttpMethod.POST,
+                new HttpEntity<>(istek, yetkiliBasliklar(kiraci.apiAnahtari())),
+                com.webhookplatformu.api.dto.EndpointOlusturmaYaniti.class);
+        if (yanit.getStatusCode() != HttpStatus.CREATED || yanit.getBody() == null) {
+            throw new IllegalStateException("Endpoint eklenemedi: " + yanit);
+        }
+        return yanit.getBody().id();
+    }
+
+    /** {@code /actuator/prometheus} ham metnini doner (kimlik dogrulamasi gerektirmez - /v1/** disinda). */
+    protected String prometheusCiktisi() {
+        return restTemplate.getForObject("/actuator/prometheus", String.class);
+    }
+
+
     protected HttpHeaders yetkiliBasliklar(String apiAnahtari) {
         HttpHeaders basliklar = new HttpHeaders();
         basliklar.set("Authorization", "Bearer " + apiAnahtari);

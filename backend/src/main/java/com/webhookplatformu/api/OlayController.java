@@ -17,6 +17,7 @@ import com.webhookplatformu.motor.IdempotencyAnahtariUretici;
 import com.webhookplatformu.motor.TeslimatPayload;
 import com.webhookplatformu.servis.GirisHizSiniricisi;
 import com.webhookplatformu.servis.KullanimSayaciServisi;
+import com.webhookplatformu.servis.TraceKimligiSaglayici;
 import com.webhookplatformu.varlik.Endpoint;
 import com.webhookplatformu.varlik.Olay;
 import com.webhookplatformu.varlik.Organizasyon;
@@ -65,13 +66,15 @@ public class OlayController {
     private final OrganizasyonBaglami organizasyonBaglami;
     private final GirisHizSiniricisi girisHizSiniricisi;
     private final KullanimSayaciServisi kullanimSayaciServisi;
+    private final TraceKimligiSaglayici traceKimligiSaglayici;
 
     public OlayController(OlayRepository olayRepository, UygulamaRepository uygulamaRepository,
                            OrganizasyonRepository organizasyonRepository, EndpointRepository endpointRepository,
                            TeslimatRepository teslimatRepository, GorevGonderici gorevGonderici,
                            IdempotencyAnahtariUretici idempotencyAnahtariUretici, ObjectMapper objectMapper,
                            OrganizasyonBaglami organizasyonBaglami, GirisHizSiniricisi girisHizSiniricisi,
-                           KullanimSayaciServisi kullanimSayaciServisi) {
+                           KullanimSayaciServisi kullanimSayaciServisi,
+                           TraceKimligiSaglayici traceKimligiSaglayici) {
         this.olayRepository = olayRepository;
         this.uygulamaRepository = uygulamaRepository;
         this.organizasyonRepository = organizasyonRepository;
@@ -83,6 +86,7 @@ public class OlayController {
         this.organizasyonBaglami = organizasyonBaglami;
         this.girisHizSiniricisi = girisHizSiniricisi;
         this.kullanimSayaciServisi = kullanimSayaciServisi;
+        this.traceKimligiSaglayici = traceKimligiSaglayici;
     }
 
     @GetMapping
@@ -131,7 +135,11 @@ public class OlayController {
             throw new IllegalStateException("Payload serilestirilemedi", e);
         }
 
-        Olay olay = new Olay(uygulamaId, organizasyonId, istek.tip(), payloadJson, idempotencyKey);
+        // Tek trace id: olaya ve ondan dogan TUM teslimatlara ayni deger yaziliyor (bkz Faz 5.2) -
+        // "bu event'e ne oldu" sorusu tek bir id ile hem UI'da hem loglarda cevaplanabilsin diye.
+        String traceId = traceKimligiSaglayici.mevcutTraceId();
+
+        Olay olay = new Olay(uygulamaId, organizasyonId, istek.tip(), payloadJson, idempotencyKey, traceId);
         olayRepository.save(olay);
 
         List<Endpoint> aboneEndpointler = endpointRepository.findByUygulamaId(uygulamaId).stream()
@@ -144,7 +152,8 @@ public class OlayController {
             olusanTeslimatIdleri.add(teslimatId);
             if (endpoint.devreAcikMi()) {
                 // Devre acik: motora hic gonderilmez, sagli sondasi devreyi kapatana kadar bekler.
-                teslimatRepository.save(Teslimat.beklemede(teslimatId, olay.getId(), endpoint.getId(), organizasyonId));
+                teslimatRepository.save(
+                        Teslimat.beklemede(teslimatId, olay.getId(), endpoint.getId(), organizasyonId, traceId));
                 continue;
             }
             String motorIdempotencyAnahtari = idempotencyAnahtariUretici.uret(organizasyonId, teslimatId);
@@ -154,7 +163,8 @@ public class OlayController {
             endpointRepository.save(endpoint);
             UUID gorevId = gorevGonderici.gonder(endpoint.getRetryProfili().getGorevTipi(),
                     new TeslimatPayload(teslimatId), new GorevOpsiyonlari(motorIdempotencyAnahtari, null, planlananZaman));
-            teslimatRepository.save(new Teslimat(teslimatId, olay.getId(), endpoint.getId(), organizasyonId, gorevId));
+            teslimatRepository.save(
+                    new Teslimat(teslimatId, olay.getId(), endpoint.getId(), organizasyonId, gorevId, traceId));
         }
 
         return ResponseEntity.status(HttpStatus.CREATED)

@@ -56,6 +56,25 @@
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
 
+        <!-- Prometheus scrape formati (/actuator/prometheus) - actuator tek basina bir
+             PrometheusMeterRegistry olusturmuyor (bkz Faz 5.2). -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- Tracing BRIDGE'i (motor-spring-starter sadece micrometer-tracing API'sini
+             getiriyor, bridge'siz Tracer bean'i HIC olusmuyor - motorun TraceBaglamServisi'si
+             o durumda her gorev icin rastgele bir UUID'ye dusuyor, yani ayni olaydan dogan
+             teslimatlar FARKLI trace id aliyordu). Brave bridge'i eklenince Spring Boot HTTP
+             istekleri icin bir span aciyor, motor da o span'in traceId'sini kullaniyor -
+             boylece bir giris istegindeki her sey ayni trace altinda toplaniyor. -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-tracing-bridge-brave</artifactId>
+        </dependency>
+
         <!-- Motor starter'ı flyway-core/flyway-database-postgresql getirmiyor (bkz
              gorev-motoru README-motor.md, Faz 0 bulgusu) - burada açıkça ekleniyor. -->
         <dependency>

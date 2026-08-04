@@ -37,11 +37,14 @@ public class TeslimatServisi {
     private final IdempotencyAnahtariUretici idempotencyAnahtariUretici;
     private final DevreKesiciYardimcisi devreKesiciYardimcisi;
     private final KullanimSayaciServisi kullanimSayaciServisi;
+    private final TraceKimligiSaglayici traceKimligiSaglayici;
+    private final TeslimatMetrikleri teslimatMetrikleri;
 
     public TeslimatServisi(TeslimatRepository teslimatRepository, EndpointRepository endpointRepository,
                             UygulamaRepository uygulamaRepository, GorevYonetimServisi gorevYonetimServisi,
                             GorevGonderici gorevGonderici, IdempotencyAnahtariUretici idempotencyAnahtariUretici,
-                            DevreKesiciYardimcisi devreKesiciYardimcisi, KullanimSayaciServisi kullanimSayaciServisi) {
+                            DevreKesiciYardimcisi devreKesiciYardimcisi, KullanimSayaciServisi kullanimSayaciServisi,
+                            TraceKimligiSaglayici traceKimligiSaglayici, TeslimatMetrikleri teslimatMetrikleri) {
         this.teslimatRepository = teslimatRepository;
         this.endpointRepository = endpointRepository;
         this.uygulamaRepository = uygulamaRepository;
@@ -50,6 +53,8 @@ public class TeslimatServisi {
         this.idempotencyAnahtariUretici = idempotencyAnahtariUretici;
         this.devreKesiciYardimcisi = devreKesiciYardimcisi;
         this.kullanimSayaciServisi = kullanimSayaciServisi;
+        this.traceKimligiSaglayici = traceKimligiSaglayici;
+        this.teslimatMetrikleri = teslimatMetrikleri;
     }
 
     /**
@@ -76,6 +81,7 @@ public class TeslimatServisi {
                 Endpoint endpoint = endpointRepository.findById(teslimat.getEndpointId()).orElseThrow();
                 devreKesiciYardimcisi.kaliciBasarisizlikBildir(endpoint);
                 kullanimSayaciServisi.artir(teslimat.getOrganizasyonId(), false);
+                teslimatMetrikleri.teslimatSonuclandi("dlq");
             }
         }
     }
@@ -102,8 +108,11 @@ public class TeslimatServisi {
         UUID gorevId = gorevGonderici.gonder(endpoint.getRetryProfili().getGorevTipi(),
                 new TeslimatPayload(yeniTeslimatId), new GorevOpsiyonlari(idempotencyAnahtari, null, null));
 
+        // Yeniden gonderim AYRI bir istek - eskisinin trace'i devralinmaz, yenisi uretilir
+        // (eski teslimatla bag zaten anaTeslimatId uzerinden kuruluyor, bkz Faz 5.2).
         Teslimat yeniTeslimat = new Teslimat(yeniTeslimatId, eskiTeslimat.getOlayId(), endpoint.getId(),
-                uygulama.getOrganizasyonId(), gorevId, eskiTeslimat.getId());
+                uygulama.getOrganizasyonId(), gorevId, eskiTeslimat.getId(),
+                traceKimligiSaglayici.mevcutTraceId());
         return teslimatRepository.save(yeniTeslimat);
     }
 }

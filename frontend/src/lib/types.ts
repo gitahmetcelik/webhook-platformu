@@ -16,6 +16,8 @@ export interface TeslimatOzeti {
   endpointId: string;
   durum: TeslimatDurumu;
   anaTeslimatId: string | null;
+  /** Girişi yapan isteğin trace id'si — aynı olaydan doğan tüm teslimatlarda aynıdır (bkz Faz 5.2). */
+  traceId: string | null;
   olusturulma: string;
   guncellenme: string;
 }
@@ -25,6 +27,7 @@ export interface OlayOzeti {
   uygulamaId: string;
   tip: string;
   disKaynakId: string;
+  traceId: string | null;
   olusturulma: string;
   teslimatlar: TeslimatOzeti[];
 }
