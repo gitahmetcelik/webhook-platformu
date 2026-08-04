@@ -4,10 +4,13 @@ import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+import { Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { PageHeader } from "@/components/page-header";
 import { useAktifUygulama } from "@/components/uygulama-provider";
 import { api } from "@/lib/api";
 
@@ -46,48 +49,54 @@ export default function TestAraciSayfasi() {
 
   return (
     <div className="flex max-w-xl flex-col gap-4">
-      <h1 className="text-xl font-semibold">Test Aracı</h1>
-      <p className="text-sm text-muted-foreground">
-        Bir olay tipi seçip payload&apos;ı düzenleyin, göndererek gerçek bir teslimatı tetikleyin.
-      </p>
+      <PageHeader
+        icon={Send}
+        title="Test Aracı"
+        description="Bir olay tipi seçip payload'ı düzenleyin, göndererek gerçek bir teslimatı tetikleyin."
+      />
 
-      <div className="flex flex-col gap-1.5">
-        <Label>Olay tipi</Label>
-        <Select
-          value={tip}
-          onValueChange={(v) => {
-            if (!v) return;
-            setTip(v);
-            setPayload(JSON.stringify(HAZIR_SENARYOLAR[v] ?? {}, null, 2));
-          }}
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {Object.keys(HAZIR_SENARYOLAR).map((s) => (
-              <SelectItem key={s} value={s}>
-                {s}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <Card>
+        <CardContent className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <Label>Olay tipi</Label>
+            <Select
+              value={tip}
+              onValueChange={(v) => {
+                if (!v) return;
+                setTip(v);
+                setPayload(JSON.stringify(HAZIR_SENARYOLAR[v] ?? {}, null, 2));
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.keys(HAZIR_SENARYOLAR).map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {s}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="payload">Payload (JSON)</Label>
-        <Textarea
-          id="payload"
-          value={payload}
-          onChange={(e) => setPayload(e.target.value)}
-          rows={10}
-          className="font-mono text-sm"
-        />
-      </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="payload">Payload (JSON)</Label>
+            <Textarea
+              id="payload"
+              value={payload}
+              onChange={(e) => setPayload(e.target.value)}
+              rows={10}
+              className="font-mono text-sm"
+            />
+          </div>
 
-      <Button onClick={() => gonderMutasyonu.mutate()} disabled={gonderMutasyonu.isPending || !uygulama}>
-        {gonderMutasyonu.isPending ? "Gönderiliyor…" : "Gönder"}
-      </Button>
+          <Button onClick={() => gonderMutasyonu.mutate()} disabled={gonderMutasyonu.isPending || !uygulama}>
+            <Send className="size-4" />
+            {gonderMutasyonu.isPending ? "Gönderiliyor…" : "Gönder"}
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -3,8 +3,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
+import { BarChart3, Key, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { PageHeader } from "@/components/page-header";
 import { api } from "@/lib/api";
 
 export default function KullanimSayfasi() {
@@ -37,105 +40,127 @@ export default function KullanimSayfasi() {
     onError: (hata: Error) => toast.error(hata.message),
   });
 
-  const kotaOrani = organizasyon ? Math.min(100, Math.round((organizasyon.buAyKullanim / organizasyon.aylikKota) * 100)) : 0;
+  const kotaOrani = organizasyon
+    ? Math.min(100, Math.round((organizasyon.buAyKullanim / organizasyon.aylikKota) * 100))
+    : 0;
 
   return (
-    <div className="flex flex-col gap-8">
-      <div>
-        <h1 className="text-xl font-semibold">Kullanım</h1>
-        {organizasyon && (
-          <div className="mt-3 flex flex-col gap-2">
-            <div className="flex items-center justify-between text-sm">
-              <span>
-                Bu ay: <strong>{organizasyon.buAyKullanim}</strong> / {organizasyon.aylikKota} teslimat
-              </span>
-              <span className="text-muted-foreground">%{kotaOrani}</span>
-            </div>
-            <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-              <div
-                className={`h-full ${kotaOrani >= 100 ? "bg-destructive" : "bg-primary"}`}
-                style={{ width: `${kotaOrani}%` }}
-              />
-            </div>
-          </div>
-        )}
-      </div>
+    <div className="flex flex-col gap-6">
+      <PageHeader icon={BarChart3} title="Kullanım" description="Aylık kota ve API anahtarı yönetimi" />
 
-      <div>
-        <h2 className="mb-2 text-sm font-medium text-muted-foreground">Günlük dağılım (bu ay)</h2>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Gün</TableHead>
-              <TableHead>Toplam</TableHead>
-              <TableHead>Başarılı</TableHead>
-              <TableHead>Başarısız</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {(!gunlukKullanim || gunlukKullanim.length === 0) && (
+      <Card>
+        <CardContent>
+          {organizasyon && (
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between text-sm">
+                <span>
+                  Bu ay: <strong className="tabular-nums">{organizasyon.buAyKullanim}</strong> /{" "}
+                  {organizasyon.aylikKota} teslimat
+                </span>
+                <span className="font-medium text-muted-foreground tabular-nums">%{kotaOrani}</span>
+              </div>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                <div
+                  className={`h-full transition-all ${kotaOrani >= 100 ? "bg-destructive" : kotaOrani >= 80 ? "bg-amber-500" : "bg-primary"}`}
+                  style={{ width: `${kotaOrani}%` }}
+                />
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card size="sm">
+        <CardHeader>
+          <CardTitle>Günlük dağılım (bu ay)</CardTitle>
+        </CardHeader>
+        <CardContent className="px-0">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={4} className="text-center text-muted-foreground">
-                  Bu ay henüz kullanım yok.
-                </TableCell>
+                <TableHead>Gün</TableHead>
+                <TableHead>Toplam</TableHead>
+                <TableHead>Başarılı</TableHead>
+                <TableHead>Başarısız</TableHead>
               </TableRow>
-            )}
-            {gunlukKullanim?.map((g) => (
-              <TableRow key={g.gun}>
-                <TableCell className="text-sm text-muted-foreground">{g.gun}</TableCell>
-                <TableCell>{g.teslimatSayisi}</TableCell>
-                <TableCell>{g.basarili}</TableCell>
-                <TableCell>{g.basarisiz}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+            </TableHeader>
+            <TableBody>
+              {(!gunlukKullanim || gunlukKullanim.length === 0) && (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center text-muted-foreground">
+                    Bu ay henüz kullanım yok.
+                  </TableCell>
+                </TableRow>
+              )}
+              {gunlukKullanim?.map((g) => (
+                <TableRow key={g.gun}>
+                  <TableCell className="text-sm text-muted-foreground">{g.gun}</TableCell>
+                  <TableCell className="tabular-nums">{g.teslimatSayisi}</TableCell>
+                  <TableCell className="tabular-nums text-emerald-600 dark:text-emerald-400">
+                    {g.basarili}
+                  </TableCell>
+                  <TableCell className="tabular-nums text-destructive">{g.basarisiz}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
-      <div>
-        <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-sm font-medium text-muted-foreground">API Anahtarları</h2>
+      <Card size="sm">
+        <CardHeader className="flex-row items-center justify-between">
+          <CardTitle>API Anahtarları</CardTitle>
           <Button size="sm" onClick={() => uretMutasyonu.mutate()} disabled={uretMutasyonu.isPending}>
+            <Key className="size-4" />
             Yeni Anahtar Üret
           </Button>
-        </div>
-        {sonUretilen && (
-          <div className="mb-2 rounded-md border bg-muted p-3 font-mono text-sm break-all">
-            {sonUretilen}
-            <p className="mt-1 font-sans text-xs text-muted-foreground">
-              Bu değer bir daha gösterilmeyecek — güvenli bir yere kaydedin.
-            </p>
-          </div>
-        )}
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Anahtar</TableHead>
-              <TableHead>Oluşturulma</TableHead>
-              <TableHead>Durum</TableHead>
-              <TableHead />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {apiAnahtarlari?.map((a) => (
-              <TableRow key={a.id}>
-                <TableCell className="font-mono text-sm">{a.anahtarOnek}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {new Date(a.olusturulma).toLocaleString("tr-TR")}
-                </TableCell>
-                <TableCell>{a.iptalEdilme ? "İptal edildi" : "Aktif"}</TableCell>
-                <TableCell>
-                  {!a.iptalEdilme && (
-                    <Button variant="outline" size="sm" onClick={() => iptalMutasyonu.mutate(a.id)}>
-                      İptal Et
-                    </Button>
-                  )}
-                </TableCell>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3 px-0">
+          {sonUretilen && (
+            <div className="mx-(--card-spacing) rounded-md border bg-muted p-3 font-mono text-sm break-all">
+              {sonUretilen}
+              <p className="mt-1 font-sans text-xs text-muted-foreground">
+                Bu değer bir daha gösterilmeyecek — güvenli bir yere kaydedin.
+              </p>
+            </div>
+          )}
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Anahtar</TableHead>
+                <TableHead>Oluşturulma</TableHead>
+                <TableHead>Durum</TableHead>
+                <TableHead />
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+            </TableHeader>
+            <TableBody>
+              {apiAnahtarlari?.map((a) => (
+                <TableRow key={a.id}>
+                  <TableCell className="font-mono text-sm">{a.anahtarOnek}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {new Date(a.olusturulma).toLocaleString("tr-TR")}
+                  </TableCell>
+                  <TableCell>
+                    {a.iptalEdilme ? (
+                      <span className="text-muted-foreground">İptal edildi</span>
+                    ) : (
+                      <span className="text-emerald-600 dark:text-emerald-400">Aktif</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {!a.iptalEdilme && (
+                      <Button variant="outline" size="sm" onClick={() => iptalMutasyonu.mutate(a.id)}>
+                        <Trash2 className="size-4" />
+                        İptal Et
+                      </Button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
   );
 }

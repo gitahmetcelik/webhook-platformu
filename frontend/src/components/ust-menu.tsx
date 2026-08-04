@@ -2,16 +2,17 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Activity, BarChart3, ClipboardList, LogOut, Radio, Send, Webhook } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/auth-provider";
 import { Button } from "@/components/ui/button";
 
 const baglantilar = [
-  { href: "/olaylar", etiket: "Olaylar" },
-  { href: "/endpointler", etiket: "Endpoint'ler" },
-  { href: "/test", etiket: "Test Aracı" },
-  { href: "/kullanim", etiket: "Kullanım" },
-  { href: "/audit", etiket: "Audit" },
+  { href: "/olaylar", etiket: "Olaylar", icon: Activity },
+  { href: "/endpointler", etiket: "Endpoint'ler", icon: Radio },
+  { href: "/test", etiket: "Test Aracı", icon: Send },
+  { href: "/kullanim", etiket: "Kullanım", icon: BarChart3 },
+  { href: "/audit", etiket: "Audit", icon: ClipboardList },
 ];
 
 export function UstMenu() {
@@ -23,26 +24,41 @@ export function UstMenu() {
   }
 
   return (
-    <header className="border-b bg-background">
-      <div className="mx-auto flex max-w-6xl items-center gap-6 px-4 py-3">
-        <span className="font-semibold">Webhook Platformu</span>
-        <nav className="flex gap-4">
-          {baglantilar.map((baglanti) => (
-            <Link
-              key={baglanti.href}
-              href={baglanti.href}
-              className={cn(
-                "text-sm text-muted-foreground hover:text-foreground",
-                yol?.startsWith(baglanti.href) && "font-medium text-foreground",
-              )}
-            >
-              {baglanti.etiket}
-            </Link>
-          ))}
+    <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur-sm">
+      <div className="mx-auto flex max-w-6xl items-center gap-1 px-4 py-3">
+        <Link href="/" className="mr-4 flex items-center gap-2 font-semibold tracking-tight">
+          <span className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
+            <Webhook className="size-4" />
+          </span>
+          <span className="hidden sm:inline">Webhook Platformu</span>
+        </Link>
+        <nav className="flex items-center gap-1">
+          {baglantilar.map((baglanti) => {
+            const aktif = yol?.startsWith(baglanti.href);
+            const Icon = baglanti.icon;
+            return (
+              <Link
+                key={baglanti.href}
+                href={baglanti.href}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition-colors",
+                  aktif
+                    ? "bg-primary/10 font-medium text-primary"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                )}
+              >
+                <Icon className="size-4" />
+                <span className="hidden md:inline">{baglanti.etiket}</span>
+              </Link>
+            );
+          })}
         </nav>
         <div className="ml-auto flex items-center gap-3">
-          {organizasyon && <span className="text-sm text-muted-foreground">{organizasyon.ad}</span>}
+          {organizasyon && (
+            <span className="hidden text-sm text-muted-foreground sm:inline">{organizasyon.ad}</span>
+          )}
           <Button variant="outline" size="sm" onClick={cikisYap}>
+            <LogOut className="size-4" />
             Çıkış
           </Button>
         </div>
