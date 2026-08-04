@@ -282,6 +282,44 @@ gider ve backend'de organizasyon sınırını aşan hiçbir okuma/yazma **404** 
 sızdırmadan) döner — bu, dashboard'un kendisinin de kiracı izolasyonunu ihlal edemeyeceği
 anlamına gelir.
 
+## Dağıtım
+
+Tam yığın (Postgres, RabbitMQ, `backend-api`, `backend-worker`, dashboard, `test-alici`) tek
+komutla ayağa kalkar:
+
+```bash
+cp .env.prod.example .env.prod
+# .env.prod içindeki şifreleri ve WEBHOOK_SIFRELEME_ANAHTARI'nı doldur (openssl rand -base64 32)
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+```
+
+Geliştirme `docker-compose.yml`'inden farkları:
+
+- **Backend ve dashboard da konteynerde.** Bu artık mümkün çünkü `motor-spring-starter` GitHub
+  Packages'ta (Faz 5.0). Maven kimlik bilgisi imaja gömülmez — build sırasında
+  `~/.m2/settings.xml` bir **BuildKit secret'ı** olarak bağlanır (`build-arg` kullanılsaydı
+  token `docker history` çıktısında kalırdı).
+- **Postgres ve RabbitMQ dışarıya port açmaz** — yalnızca compose ağından erişilir.
+- **Ayrı compose proje adı** (`webhook-platformu-prod`). Compose proje adını dizin adından
+  türetir; bu ayrım olmasaydı prod yığını geliştirme ile aynı `postgres-data` volume'ünü
+  paylaşırdı. Postgres şifreyi yalnızca boş bir veri dizinini ilk kez başlatırken uygular,
+  dolayısıyla prod şifresi hiç geçerli olmaz ve backend `password authentication failed` ile
+  açılmazdı — üstelik prod, geliştirme verisinin üstüne otururdu.
+- Worker'ın `stop_grace_period`'ı 70 sn: devam eden teslimatlar kapanışta tamamlanabilsin diye.
+
+Demo verisi üretmek için (tek seferlik):
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.prod \
+  run --rm -e SPRING_PROFILES_ACTIVE=api,seed --no-deps backend-api
+```
+Log'daki `TOHUM ... API anahtari` satırındaki anahtarla dashboard'a girilir. (Konteynerde
+seed'in ürettiği endpoint `http://test-alici:4000/webhook` adresini gösterir — container
+ağında `localhost` backend'in kendisi olurdu.)
+
+**Fly.io'ya dağıtım:** [`dagitim/fly/`](dagitim/fly/README.md) — backend'i tek imajda iki
+process grubu (`api` + `worker`), RabbitMQ ve dashboard'u ayrı app olarak kuran
+yapılandırma ve adım adım rehber. *(Yazıldı, canlıda henüz doğrulanmadı.)*
+
 ## Demo
 
 Ürünün asıl iddiasını (teslimat başarısız olduğunda ne olduğu) baştan sona yalnızca

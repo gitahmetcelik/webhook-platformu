@@ -1,0 +1,53 @@
+# Backend (api + worker) - TEK imaj, iki process grubu.
+#
+# Kullanim:
+#   fly deploy -c dagitim/fly/fly.backend.toml --local-only
+#
+# --local-only ONEMLI: imaj yerel Docker'da build edilip Fly registry'sine push edilir.
+# Boylece motor-spring-starter'i cekmek icin gereken GitHub Packages token'i (BuildKit
+# secret'i olarak ~/.m2/settings.xml) Fly'in uzak builder'ina hic gonderilmez.
+# Uzak builder kullanmak isterseniz: fly deploy --build-secret maven_settings="$(cat ~/.m2/settings.xml)"
+
+app = "webhook-platformu-backend"
+primary_region = "fra"   # dashboard ve rabbitmq ile AYNI bolge olmali
+
+[build]
+  dockerfile = "../../backend/Dockerfile"
+
+[build.secrets]
+  # Yerel build'de ~/.m2/settings.xml'i BuildKit secret'i olarak baglar (bkz backend/Dockerfile).
+  maven_settings = "maven_settings"
+
+[processes]
+  # Dockerfile'daki ENTRYPOINT ["java","-jar","app.jar"] korunur; buradaki deger CMD olarak
+  # ona ARGUMAN eklenir. (Calismazsa tam komutu yazin: "java -jar app.jar --spring.profiles.active=api")
+  api = "--spring.profiles.active=api"
+  worker = "--spring.profiles.active=worker"
+
+[env]
+  SPRING_RABBITMQ_HOST = "webhook-platformu-rabbitmq.internal"
+  SPRING_RABBITMQ_PORT = "5672"
+  SERVER_PORT = "8080"
+  # Dashboard'un adresi - CORS icin.
+  WEBHOOK_IZINLI_ORIGINLER = "https://webhook-platformu-dashboard.fly.dev"
+  JAVA_TOOL_OPTIONS = "-XX:MaxRAMPercentage=75"
+
+# HTTP yalnizca api process grubuna acilir - worker disaridan erisilemez.
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "suspend"
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["api"]
+
+  [http_service.checks]
+    [[http_service.checks.health]]
+      path = "/actuator/health"
+      interval = "15s"
+      timeout = "5s"
+      grace_period = "60s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "1gb"

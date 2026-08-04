@@ -1,0 +1,27 @@
+# Next.js dashboard.
+#
+#   fly deploy -c dagitim/fly/fly.dashboard.toml --local-only \
+#     --build-arg NEXT_PUBLIC_API_URL=https://webhook-platformu-backend.fly.dev
+#
+# NEXT_PUBLIC_API_URL BUILD sirasinda istemci paketine gomulur (bkz frontend/Dockerfile) -
+# runtime secret'i olarak verilirse tarayicida gorunmez, dashboard hicbir isteği yapamaz.
+
+app = "webhook-platformu-dashboard"
+primary_region = "fra"
+
+[build]
+  dockerfile = "../../frontend/Dockerfile"
+
+[build.args]
+  NEXT_PUBLIC_API_URL = "https://webhook-platformu-backend.fly.dev"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = "suspend"
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
