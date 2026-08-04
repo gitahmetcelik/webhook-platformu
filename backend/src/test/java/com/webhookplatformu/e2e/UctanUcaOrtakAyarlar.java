@@ -107,7 +107,13 @@ public abstract class UctanUcaOrtakAyarlar {
         // tetiklenirse uyari/audit sayan testleri rastgele bozar - testler kontrolu zaten
         // dogrudan cagiriyor (bkz SaglikSkoruTestleri), periyodik tetikleme devre disi.
         registry.add("webhook.saglik-kontrol-araligi", () -> "PT24H");
+        // Varsayilan esik (20) icin 20 basarisiz teslimat uretmek testi gereksiz yavaslatiyor -
+        // devre kesicinin mantigi esikten bagimsiz, 3 ile de ayni sey dogrulaniyor.
+        registry.add("webhook.devre-esigi", () -> TEST_DEVRE_ESIGI);
     }
+
+    /** Bkz {@code webhook.devre-esigi} ayari yukarida. */
+    protected static final int TEST_DEVRE_ESIGI = 3;
 
     @Autowired
     protected TestRestTemplate restTemplate;

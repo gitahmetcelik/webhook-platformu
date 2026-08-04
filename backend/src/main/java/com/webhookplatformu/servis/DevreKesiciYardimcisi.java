@@ -8,6 +8,7 @@ import com.webhookplatformu.varlik.Endpoint;
 import com.webhookplatformu.varlik.Uygulama;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
@@ -23,16 +24,20 @@ public class DevreKesiciYardimcisi {
     private final EndpointRepository endpointRepository;
     private final UygulamaRepository uygulamaRepository;
     private final AuditKaydiRepository auditKaydiRepository;
+    private final int devreEsigi;
 
     public DevreKesiciYardimcisi(EndpointRepository endpointRepository, UygulamaRepository uygulamaRepository,
-                                  AuditKaydiRepository auditKaydiRepository) {
+                                  AuditKaydiRepository auditKaydiRepository,
+                                  @Value("${webhook.devre-esigi:" + Endpoint.VARSAYILAN_DEVRE_ESIGI + "}")
+                                  int devreEsigi) {
         this.endpointRepository = endpointRepository;
         this.uygulamaRepository = uygulamaRepository;
         this.auditKaydiRepository = auditKaydiRepository;
+        this.devreEsigi = devreEsigi;
     }
 
     public void kaliciBasarisizlikBildir(Endpoint endpoint) {
-        boolean devreYeniAcildi = endpoint.ardisikHataArtir();
+        boolean devreYeniAcildi = endpoint.ardisikHataArtir(devreEsigi);
         endpointRepository.save(endpoint);
         if (devreYeniAcildi) {
             log.warn("Endpoint devresi acildi (ardisik hata esigi asildi): {}", endpoint.getId());

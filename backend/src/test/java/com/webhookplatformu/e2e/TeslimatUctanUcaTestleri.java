@@ -180,7 +180,7 @@ class TeslimatUctanUcaTestleri extends UctanUcaOrtakAyarlar {
         Kiraci kiraci = yeniKiraciOlustur(RetryProfili.HIZLI, null, 10_000);
         testAliciModAyarla("404");
 
-        for (int i = 0; i < Endpoint.DEVRE_ESIGI; i++) {
+        for (int i = 0; i < TEST_DEVRE_ESIGI; i++) {
             tekTeslimatliOlayGonder(kiraci, "siparis.olusturuldu", Map.of("i", i));
         }
 

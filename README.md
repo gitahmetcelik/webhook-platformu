@@ -11,47 +11,150 @@ Yürütme motoru olarak [`gorev-motoru`](https://github.com/gitahmetcelik/gorev-
 (`motor-spring-starter`) kullanılır — retry+backoff, DLQ, idempotency, öncelik kuyrukları
 buradan gelir; bu repo motoru bir Maven bağımlılığı olarak tüketir, motor koduna dokunmaz.
 
+## Mimari
+
+```mermaid
+flowchart LR
+    M[Müşteri sistemi] -->|POST /v1/.../olaylar<br/>Idempotency-Key| API
+
+    subgraph platform [Webhook Platformu]
+        API[api profili<br/>giriş + yönetim REST]
+        DB[(Postgres<br/>motor + webhook şemaları)]
+        MQ[RabbitMQ<br/>öncelik kuyrukları + gecikmeli mesaj]
+        W[worker profili<br/>teslimat handler'ları]
+        API -->|olay + teslimat + görev<br/>tek transaction| DB
+        API -.->|motor outbox| MQ
+        MQ --> W
+        W --> DB
+    end
+
+    W -->|HMAC imzalı POST| E[Abone endpoint'i]
+    UI[Next.js dashboard] -->|Bearer API anahtarı| API
+```
+
+Giriş isteği tek transaction'da olayı, filtreye uyan her endpoint için bir teslimatı ve
+motora bir görevi yazar; motorun outbox'ı sayesinde transaction commit olmadan hiçbir şey
+kuyruğa girmez. Worker teslimatı imzalayıp gerçekten POST eder; başarısızlıkta motorun retry
+merdiveni, tükenince DLQ, ardışık kalıcı hatalarda devre kesici devreye girer.
+
+**Neden iki ayrı profil (`api` / `worker`):** giriş trafiği ile teslimat yükü birbirini
+etkilemesin diye — `api` motor tüketicisini çalıştırmaz (`motor.worker.tuketici-aktif: false`),
+`worker` ise HTTP giriş almaz.
+
 ## Repo düzeni
 
 ```
-/backend        Maven, Spring Boot (Java 21) — teslimat API'si + worker
-/frontend       Next.js — dashboard
-/test-alici     Kontrol edilebilir webhook alıcısı (kapı testleri için)
+/backend                 Maven, Spring Boot (Java 21) — teslimat API'si + worker
+/frontend                Next.js — dashboard
+/test-alici              Kontrol edilebilir webhook alıcısı (kapı testleri için)
+/gozlemlenebilirlik      Grafana panosu
+/docs                    İmza doğrulama (müşteri tarafı) dokümanı
 docker-compose.yml
 ```
 
-## Geliştirme ortamı
+## 5 dakikada ayağa kaldır
 
-`motor-spring-starter` GitHub Packages'tan çekilir (bkz `gorev-motoru` Faz 5.0) — local
-`.m2`'ye elle kurmaya gerek yok, ama Maven'in GitHub Packages'a erişebilmesi için bir kereye
-mahsus kimlik doğrulama gerekir:
+**Gereksinimler:** Docker, JDK 21, Node 20+, bir GitHub hesabı.
 
-1. https://github.com/settings/tokens/new → **Classic token**, scope: `read:packages`
-   (+ `repo`, `gorev-motoru` private olduğu için gerekebilir).
-2. `~/.m2/settings.xml` (yoksa oluştur):
-   ```xml
-   <settings>
-     <servers>
-       <server>
-         <id>github-gorev-motoru</id>
-         <username>KENDI_GITHUB_KULLANICI_ADIN</username>
-         <password>ghp_...</password>
-       </server>
-     </servers>
-   </settings>
-   ```
+**1. GitHub Packages kimlik doğrulaması (bir kereye mahsus).** `motor-spring-starter`
+[`gorev-motoru`](https://github.com/gitahmetcelik/gorev-motoru) reposunun GitHub Packages
+registry'sinden çekilir — local `.m2`'ye elle kurmaya gerek yok:
 
-Sonra:
+- https://github.com/settings/tokens/new → **Classic token**, scope `read:packages`
+  (+ `repo`, `gorev-motoru` private olduğu için gerekebilir).
+  *(Fine-grained token çalışmaz — GitHub Packages Maven registry'si onları desteklemiyor.)*
+- `~/.m2/settings.xml` (yoksa oluştur):
+  ```xml
+  <settings>
+    <servers>
+      <server>
+        <id>github-gorev-motoru</id>
+        <username>KENDI_GITHUB_KULLANICI_ADIN</username>
+        <password>ghp_...</password>
+      </server>
+    </servers>
+  </settings>
+  ```
+
+**2. Altyapıyı başlat:**
 ```bash
 cp .env.example .env
 docker compose up -d postgres rabbitmq test-alici
 # postgres: localhost:5433, rabbitmq: localhost:5673 (15673 yönetim arayüzü) —
 # gorev-motoru'nun kendi geliştirme container'larıyla (5432/5672) çakışmasın diye farklı port.
-
-cd backend
-mvn spring-boot:run -Dspring-boot.run.profiles=api     # 8080
-mvn spring-boot:run -Dspring-boot.run.profiles=worker   # 8081, ayrı terminalde
 ```
+
+**3. Backend'i başlat** (iki ayrı terminal):
+```bash
+cd backend
+mvn spring-boot:run -Dspring-boot.run.profiles=api      # 8080
+mvn spring-boot:run -Dspring-boot.run.profiles=worker   # 8081
+```
+
+**4. Demo verisi üret** (bir kere — iki organizasyon, her birine uygulama + endpoint +
+API anahtarı). `seed` profili log'a `TOHUM [...] API anahtari (Authorization: Bearer ...)=...`
+satırlarını basar, o anahtarı kopyalayın:
+```bash
+mvn spring-boot:run -Dspring-boot.run.profiles=api,seed
+```
+
+**5. Dashboard'u başlat:**
+```bash
+cd frontend
+cp .env.local.example .env.local
+npm install && npm run dev      # http://localhost:3000
+```
+
+`http://localhost:3000/giris` → 4. adımdaki API anahtarını yapıştırın. Uçtan uca akışı
+terminale hiç dokunmadan denemek için `/test` sayfasını kullanın.
+
+> **Bu makineye özgü bir tuzak:** ortamda proje dışı bir `SERVER_PORT` değişkeni varsa
+> Spring Boot'un relaxed binding'i yüzünden `server.port` ezilir ve uygulama beklenmedik bir
+> portta açılır.
+
+## API referansı
+
+Tüm `/v1/**` uç noktaları `Authorization: Bearer <api-anahtarı>` ister. Organizasyon sınırını
+aşan her okuma/yazma **404** döner (403 değil — varlık sızdırmamak için).
+
+### Giriş (müşteri sistemlerinin kullandığı)
+
+| Uç nokta | Açıklama |
+|---|---|
+| `POST /v1/uygulamalar/{uygulamaId}/olaylar` | Event gönderir. **`Idempotency-Key` başlığı zorunlu.** Gövde: `{"tip": "...", "payload": {...}}`. Yeni event `201`, aynı anahtarla tekrar `200` (aynı olay/teslimatlar döner). Kota aşımında `429`. |
+
+### Olaylar ve teslimatlar
+
+| Uç nokta | Açıklama |
+|---|---|
+| `GET /v1/uygulamalar/{uygulamaId}/olaylar` | Sayfalı olay listesi. Filtre: `tip`, `baslangic`, `bitis`. |
+| `GET /v1/teslimatlar` | Sayfalı teslimat listesi. Filtre: `durum`, `endpointId`, `baslangic`, `bitis`. |
+| `GET /v1/teslimatlar/{id}` | Teslimat detayı: deneme timeline'ı, payload, motordaki görev özeti, trace id. |
+| `POST /v1/teslimatlar/{id}/yeniden-gonder` | Yalnızca `DLQ` / `KALICI_HATA` durumundan. **Yeni** bir teslimat satırı üretir (`anaTeslimatId` eskiye bağlar), `201`. |
+
+### Endpoint yönetimi
+
+| Uç nokta | Açıklama |
+|---|---|
+| `GET /v1/uygulamalar` | Organizasyonun uygulamaları. |
+| `GET`/`POST /v1/uygulamalar/{uygulamaId}/endpointler` | Listele / oluştur. Secret **yalnızca oluşturma yanıtında bir kez** döner. |
+| `GET`/`PATCH /v1/endpointler/{id}` | Detay (sağlık skoru dahil) / güncelle (URL, olay filtresi, retry profili, hız sınırı). |
+| `POST /v1/endpointler/{id}/devre-sifirla` | Devre kesiciyi elle kapatır. |
+| `POST /v1/endpointler/{id}/secret-rotasyon` | Yeni secret üretir, eskisi 24 saat doğrulamada geçerli kalır. |
+| `POST /v1/endpointler/{id}/imza-dogrula` | Bir imzayı aktif ve (grace içindeyse) eski secret'a karşı doğrular — rotasyonu test etmek için. |
+
+### Organizasyon
+
+| Uç nokta | Açıklama |
+|---|---|
+| `GET /v1/organizasyon/ben` | Organizasyon bilgisi, aylık kota ve bu ayki kullanım. |
+| `GET /v1/kullanim` | Bu ayın günlük başarılı/başarısız dökümü. |
+| `GET /v1/audit` | Sayfalı denetim kayıtları (devre, secret rotasyonu, API anahtarı, sağlık uyarıları). |
+| `GET`/`POST /v1/organizasyon/api-anahtarlari` | Listele / üret (anahtar bir kez gösterilir). |
+| `POST /v1/organizasyon/api-anahtarlari/{id}/iptal` | Anahtarı iptal eder. |
+
+Müşteri tarafında imza doğrulamanın nasıl yapılacağı (örnek kodlarla):
+[`docs/imza-dogrulama.md`](docs/imza-dogrulama.md).
 
 ## Testler
 
@@ -62,10 +165,16 @@ mvn test        # Docker gerekir - Testcontainers Postgres + RabbitMQ + test-ali
 
 Uçtan uca suite (`backend/src/test/java/com/webhookplatformu/e2e/`) gerçek bir Postgres,
 gerçek bir RabbitMQ (delayed-message plugin'li, geliştirmedeki aynı imaj) ve `test-alici`'nin
-kendi Dockerfile'ından build edilmiş bir container'ına karşı, gerçek HTTP çağrılarıyla şu 10
+kendi Dockerfile'ından build edilmiş bir container'ına karşı, gerçek HTTP çağrılarıyla 17
 senaryoyu doğrular: başarılı teslimat, imza doğrulama, giriş idempotency'si, retry merdiveni,
 DLQ'ya düşüş, DLQ'dan yeniden gönderim, kalıcı hata (retry yok), devre kesici aç/kapa, kiracı
-izolasyonu, kota aşımı. Her test kendi izole organizasyonunu oluşturur.
+izolasyonu, kota aşımı, trace zinciri, Prometheus metrik isimleri, sağlık skoru ve eşik
+uyarısı. Her test kendi izole organizasyonunu oluşturur.
+
+> Container'lar test sınıfları arasında **singleton** olarak paylaşılır (`@Testcontainers`/
+> `@Container` bilinçli olarak kullanılmaz). O anotasyonlar container'ı her sınıf sonunda
+> durdururken Spring context'i cache'lendiği için, sonraki sınıf ölmüş container'ın JDBC
+> URL'ini yeniden kullanıp tüm testleri patlatıyordu.
 
 CI (`.github/workflows/ci.yml`) bu suite'i her PR'da koşar. `motor-spring-starter` GitHub
 Packages'tan çekildiği için CI'ın `GH_PACKAGES_TOKEN` repo secret'ına ihtiyacı var
@@ -173,7 +282,14 @@ gider ve backend'de organizasyon sınırını aşan hiçbir okuma/yazma **404** 
 sızdırmadan) döner — bu, dashboard'un kendisinin de kiracı izolasyonunu ihlal edemeyeceği
 anlamına gelir.
 
+## Demo
+
+Ürünün asıl iddiasını (teslimat başarısız olduğunda ne olduğu) baştan sona yalnızca
+dashboard kullanarak gösteren 3 dakikalık senaryo: [`DEMO.md`](DEMO.md).
+
 ## Durum
 
-Faz 4 (ticari katman) tamamlandı ve `master`'a merge edildi. Detaylı plan ve faz kapı
-testleri için proje sahibinin kendi planlama notlarına bakınız.
+Faz 5 (v1.0) sürüyor. Tamamlanan: motor GitHub Packages'ta (5.0), Testcontainers uçtan uca
+suite + CI (5.1), gözlemlenebilirlik (5.2), endpoint sağlık skoru (5.3), demo ve
+dokümantasyon (5.4). Detaylı plan ve faz kapı testleri için proje sahibinin kendi planlama
+notlarına bakınız.
