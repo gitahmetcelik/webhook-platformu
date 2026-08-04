@@ -53,6 +53,24 @@ mvn spring-boot:run -Dspring-boot.run.profiles=api     # 8080
 mvn spring-boot:run -Dspring-boot.run.profiles=worker   # 8081, ayrı terminalde
 ```
 
+## Testler
+
+```bash
+cd backend
+mvn test        # Docker gerekir - Testcontainers Postgres + RabbitMQ + test-alici ayağa kaldırır
+```
+
+Uçtan uca suite (`backend/src/test/java/com/webhookplatformu/e2e/`) gerçek bir Postgres,
+gerçek bir RabbitMQ (delayed-message plugin'li, geliştirmedeki aynı imaj) ve `test-alici`'nin
+kendi Dockerfile'ından build edilmiş bir container'ına karşı, gerçek HTTP çağrılarıyla şu 10
+senaryoyu doğrular: başarılı teslimat, imza doğrulama, giriş idempotency'si, retry merdiveni,
+DLQ'ya düşüş, DLQ'dan yeniden gönderim, kalıcı hata (retry yok), devre kesici aç/kapa, kiracı
+izolasyonu, kota aşımı. Her test kendi izole organizasyonunu oluşturur.
+
+CI (`.github/workflows/ci.yml`) bu suite'i her PR'da koşar. `motor-spring-starter` GitHub
+Packages'tan çekildiği için CI'ın `GH_PACKAGES_TOKEN` repo secret'ına ihtiyacı var
+(`read:packages` yetkili classic PAT).
+
 ## Arayüz (dashboard) ne işe yarar, ne test eder
 
 Dashboard bu üründe bir demo aracı değil, ürünün kendisidir — Faz 2'de curl ile yapılan her

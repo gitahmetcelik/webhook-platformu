@@ -43,7 +43,15 @@ public class TeslimatGonderimYardimcisi {
         this.sifrelemeServisi = sifrelemeServisi;
         this.hmacImzalayici = hmacImzalayici;
         this.teslimatDenemesiRepository = teslimatDenemesiRepository;
-        this.httpClient = HttpClient.newBuilder().connectTimeout(HTTP_ZAMAN_ASIMI).build();
+        // HTTP_1_1'e SABITLENMIS bilincli: varsayilan (HTTP_2) JDK istemcisi her yeni baglantida
+        // once bir h2c (cleartext HTTP/2) yukseltme deniyor - musteri endpoint'leri (neredeyse
+        // hicbiri HTTP/2 sunmaz) bu yukseltmeyi 101 ile onaylamayinca istemci govdesiz/bozuk bir
+        // "yoklama" istegi gonderip ardindan gercek istegi AYRI bir fiziksel HTTP isteginde
+        // tekrar yolluyor - bizim tarafimizdan TEK bir deneme olarak gorunse de alici tarafta
+        // birden fazla fiziksel istek olarak goruluyor (Faz 5.1 Testcontainers testinde imza
+        // dogrulama senaryosunda gercekten yakalandi - govde bos geldigi icin HMAC uyusmuyordu).
+        this.httpClient = HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1)
+                .connectTimeout(HTTP_ZAMAN_ASIMI).build();
     }
 
     public Sonuc gonderVeKaydet(Teslimat teslimat, Endpoint endpoint, String payloadJson, int denemeNo)

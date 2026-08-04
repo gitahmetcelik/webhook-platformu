@@ -1,0 +1,47 @@
+name: CI
+
+# Faz 5.1: uctan uca Testcontainers suite'i her PR'da ve master'a push'ta kosar.
+# ubuntu-latest runner'inda Docker hazir geldigi icin Testcontainers (Postgres + RabbitMQ +
+# test-alici) ek kuruluma gerek olmadan calisir.
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+jobs:
+  backend-testleri:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: GitHub Packages kimlik dogrulamasi
+        # motor-spring-starter gorev-motoru reposunun GitHub Packages registry'sinde (bkz
+        # Faz 5.0). Ayri bir private repo oldugu icin bu is akisinin kendi GITHUB_TOKEN'i
+        # yetmiyor - read:packages yetkili bir classic PAT gerekiyor (repo secret'i).
+        run: |
+          mkdir -p ~/.m2
+          cat > ~/.m2/settings.xml <<'EOF'
+          <settings>
+            <servers>
+              <server>
+                <id>github-gorev-motoru</id>
+                <username>${env.GH_PACKAGES_KULLANICI}</username>
+                <password>${env.GH_PACKAGES_TOKEN}</password>
+              </server>
+            </servers>
+          </settings>
+          EOF
+
+      - name: Testleri kosur
+        working-directory: backend
+        run: mvn -B test
+        env:
+          GH_PACKAGES_KULLANICI: ${{ github.repository_owner }}
+          GH_PACKAGES_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}

@@ -78,6 +78,29 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <!-- Faz 5.1: Testcontainers uctan uca suite - versiyonlar spring-boot-dependencies
+             BOM'undan (parent pom) geliyor, burada ayrica belirtmeye gerek yok. -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>rabbitmq</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -85,6 +108,23 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <!-- Surefire'in varsayilan include desenleri (Test*/*Test/*Tests/*TestCase)
+                     projenin Turkce test sinifi adlandirmasini (*Testleri) yakalamiyor - ayni
+                     tuzak gorev-motoru'nda da vardi (bkz Faz 0.8 bulgusu), mvn test sessizce
+                     sifir test kosup "basarili" gorunuyordu. -->
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <includes>
+                        <include>**/Test*.java</include>
+                        <include>**/*Test.java</include>
+                        <include>**/*Tests.java</include>
+                        <include>**/*TestCase.java</include>
+                        <include>**/*Testleri.java</include>
+                    </includes>
+                </configuration>
             </plugin>
         </plugins>
     </build>
