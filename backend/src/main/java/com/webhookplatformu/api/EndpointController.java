@@ -11,6 +11,7 @@ import com.webhookplatformu.depo.UygulamaRepository;
 import com.webhookplatformu.guvenlik.HmacImzalayici;
 import com.webhookplatformu.guvenlik.SecretUretici;
 import com.webhookplatformu.guvenlik.SifrelemeServisi;
+import com.webhookplatformu.guvenlik.SsrfKorumaServisi;
 import com.webhookplatformu.servis.BekleyenTeslimatKuyruklayici;
 import com.webhookplatformu.servis.EndpointSaglikHesaplayici;
 import com.webhookplatformu.varlik.AuditKaydi;
@@ -48,12 +49,14 @@ public class EndpointController {
     private final HmacImzalayici hmacImzalayici;
     private final OrganizasyonBaglami organizasyonBaglami;
     private final BekleyenTeslimatKuyruklayici bekleyenTeslimatKuyruklayici;
+    private final SsrfKorumaServisi ssrfKorumaServisi;
 
     public EndpointController(EndpointRepository endpointRepository, UygulamaRepository uygulamaRepository,
                                AuditKaydiRepository auditKaydiRepository, EndpointSaglikHesaplayici saglikHesaplayici,
                                SecretUretici secretUretici, SifrelemeServisi sifrelemeServisi,
                                HmacImzalayici hmacImzalayici, OrganizasyonBaglami organizasyonBaglami,
-                               BekleyenTeslimatKuyruklayici bekleyenTeslimatKuyruklayici) {
+                               BekleyenTeslimatKuyruklayici bekleyenTeslimatKuyruklayici,
+                               SsrfKorumaServisi ssrfKorumaServisi) {
         this.endpointRepository = endpointRepository;
         this.uygulamaRepository = uygulamaRepository;
         this.auditKaydiRepository = auditKaydiRepository;
@@ -63,6 +66,7 @@ public class EndpointController {
         this.hmacImzalayici = hmacImzalayici;
         this.organizasyonBaglami = organizasyonBaglami;
         this.bekleyenTeslimatKuyruklayici = bekleyenTeslimatKuyruklayici;
+        this.ssrfKorumaServisi = ssrfKorumaServisi;
     }
 
     @GetMapping("/{id}")
@@ -75,6 +79,11 @@ public class EndpointController {
     @Transactional
     public EndpointYaniti guncelle(@PathVariable UUID id, @Valid @RequestBody EndpointOlusturmaIstegi istek) {
         Endpoint endpoint = bul(id);
+        try {
+            ssrfKorumaServisi.dogrula(istek.url());
+        } catch (SsrfKorumaServisi.SsrfIhlali e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        }
         RetryProfili profil = istek.retryProfili() != null ? istek.retryProfili() : endpoint.getRetryProfili();
         String[] filtre = istek.olayFiltresi() != null ? istek.olayFiltresi() : endpoint.getOlayFiltresi();
         endpoint.guncelle(istek.url(), filtre, profil, istek.hizSiniriSn());

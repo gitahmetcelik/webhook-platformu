@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
       // kalıp (bkz auth-provider.tsx, uygulama-provider.tsx yorumları). Kural bu deseni de
       // "cascading render" riski olarak işaretliyor; hata yerine uyarıya indirildi.
       "react-hooks/set-state-in-effect": "warn",
+      // §0.3 NEVER listesi — panel üçüncü taraf içeriği (abone yanıtları) render ediyor.
+      "react/no-danger": "error",
+      "no-eval": "error",
+      "no-new-func": "error",
     },
   },
   // Override default ignores of eslint-config-next.

@@ -29,6 +29,11 @@ export const metadata: Metadata = {
   description: "Webhook teslimat platformu — dashboard",
 };
 
+// Nonce'li CSP (bkz src/proxy.ts) her istekte taze bir nonce üretir; statik sayfalar build
+// zamanında üretildiği için nonce alamaz. Kök layout'ta zorlanan dinamik render tüm rotalara
+// kademeleniyor (bkz Next content-security-policy.md "Forcing dynamic rendering").
+export const dynamic = "force-dynamic";
+
 export default function RootLayout({
   children,
 }: Readonly<{

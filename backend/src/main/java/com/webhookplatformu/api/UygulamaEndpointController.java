@@ -7,6 +7,7 @@ import com.webhookplatformu.depo.EndpointRepository;
 import com.webhookplatformu.depo.UygulamaRepository;
 import com.webhookplatformu.guvenlik.SecretUretici;
 import com.webhookplatformu.guvenlik.SifrelemeServisi;
+import com.webhookplatformu.guvenlik.SsrfKorumaServisi;
 import com.webhookplatformu.servis.EndpointSaglikHesaplayici;
 import com.webhookplatformu.varlik.Endpoint;
 import com.webhookplatformu.varlik.RetryProfili;
@@ -36,17 +37,20 @@ public class UygulamaEndpointController {
     private final SifrelemeServisi sifrelemeServisi;
     private final EndpointSaglikHesaplayici saglikHesaplayici;
     private final OrganizasyonBaglami organizasyonBaglami;
+    private final SsrfKorumaServisi ssrfKorumaServisi;
 
     public UygulamaEndpointController(EndpointRepository endpointRepository, UygulamaRepository uygulamaRepository,
                                        SecretUretici secretUretici, SifrelemeServisi sifrelemeServisi,
                                        EndpointSaglikHesaplayici saglikHesaplayici,
-                                       OrganizasyonBaglami organizasyonBaglami) {
+                                       OrganizasyonBaglami organizasyonBaglami,
+                                       SsrfKorumaServisi ssrfKorumaServisi) {
         this.endpointRepository = endpointRepository;
         this.uygulamaRepository = uygulamaRepository;
         this.secretUretici = secretUretici;
         this.sifrelemeServisi = sifrelemeServisi;
         this.saglikHesaplayici = saglikHesaplayici;
         this.organizasyonBaglami = organizasyonBaglami;
+        this.ssrfKorumaServisi = ssrfKorumaServisi;
     }
 
     @GetMapping
@@ -62,6 +66,7 @@ public class UygulamaEndpointController {
     public ResponseEntity<EndpointOlusturmaYaniti> olustur(@PathVariable UUID uygulamaId,
                                                              @Valid @RequestBody EndpointOlusturmaIstegi istek) {
         uygulamaDogrula(uygulamaId);
+        ssrfDogrula(istek.url());
         String duzSecret = secretUretici.uret();
         RetryProfili profil = istek.retryProfili() != null ? istek.retryProfili() : RetryProfili.STANDART;
         String[] filtre = istek.olayFiltresi() != null ? istek.olayFiltresi() : new String[0];
@@ -69,6 +74,14 @@ public class UygulamaEndpointController {
         endpointRepository.save(endpoint);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new EndpointOlusturmaYaniti(endpoint.getId(), endpoint.getUrl(), duzSecret));
+    }
+
+    private void ssrfDogrula(String url) {
+        try {
+            ssrfKorumaServisi.dogrula(url);
+        } catch (SsrfKorumaServisi.SsrfIhlali e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        }
     }
 
     private void uygulamaDogrula(UUID uygulamaId) {

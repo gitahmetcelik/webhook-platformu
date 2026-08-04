@@ -110,6 +110,11 @@ public abstract class UctanUcaOrtakAyarlar {
         // Varsayilan esik (20) icin 20 basarisiz teslimat uretmek testi gereksiz yavaslatiyor -
         // devre kesicinin mantigi esikten bagimsiz, 3 ile de ayni sey dogrulaniyor.
         registry.add("webhook.devre-esigi", () -> TEST_DEVRE_ESIGI);
+        // test-alici Docker'in ozel agindaki bir IP'de/http uzerinde dinliyor - bu ikisi de
+        // uretimde SsrfKorumaServisi tarafindan reddedilir (bkz SS13.C), yalniz test profilinde
+        // acikca izin veriliyor.
+        registry.add("webhook.ssrf.http-izinli", () -> "true");
+        registry.add("webhook.ssrf.ic-ag-izinli", () -> "true");
     }
 
     /** Bkz {@code webhook.devre-esigi} ayari yukarida. */
