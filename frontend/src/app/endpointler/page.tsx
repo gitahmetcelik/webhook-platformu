@@ -3,9 +3,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
+import { Plus, RotateCcw, Radio, SquarePen } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { PageHeader } from "@/components/page-header";
 import { DevreDurumRozeti } from "@/components/devre-durum-rozeti";
 import { EndpointFormDialog } from "@/components/endpoint-form-dialog";
 import { SaglikSkoru } from "@/components/saglik-skoru";
@@ -31,105 +34,122 @@ export default function EndpointlerSayfasi() {
     mutationFn: (id: string) => api.endpointler.devreSifirla(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["endpointler"] });
-      toast.success("Devre sıfırlandı");
+      toast.success("Devre sıfırlandı, bekleyen teslimatlar kuyruğa alındı");
     },
     onError: (hata: Error) => toast.error(hata.message),
   });
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Endpoint&apos;ler</h1>
-        <Button
-          onClick={() => {
-            setDuzenlenecek(undefined);
-            setFormAcik(true);
-          }}
-        >
-          Yeni Endpoint
-        </Button>
-      </div>
+      <PageHeader
+        icon={Radio}
+        title="Endpoint'ler"
+        description="Abone endpoint'leriniz, sağlık durumları ve devre kesici"
+        action={
+          <Button
+            data-tur="endpoint-yeni-buton"
+            onClick={() => {
+              setDuzenlenecek(undefined);
+              setFormAcik(true);
+            }}
+          >
+            <Plus className="size-4" />
+            Yeni Endpoint
+          </Button>
+        }
+      />
 
-      {isLoading && <p className="text-sm text-muted-foreground">Yükleniyor…</p>}
-
-      {data && (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>URL</TableHead>
-              <TableHead>Olay Filtresi</TableHead>
-              <TableHead>Retry Profili</TableHead>
-              <TableHead>Son 24sa Başarı</TableHead>
-              <TableHead>Sağlık Skoru</TableHead>
-              <TableHead>Devre</TableHead>
-              <TableHead />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data.length === 0 && (
+      <Card size="sm">
+        <CardContent className="overflow-x-auto px-0">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground">
-                  Henüz endpoint yok.
-                </TableCell>
+                <TableHead>URL</TableHead>
+                <TableHead>Olay Filtresi</TableHead>
+                <TableHead>Retry Profili</TableHead>
+                <TableHead>Son 24sa Başarı</TableHead>
+                <TableHead>Sağlık Skoru</TableHead>
+                <TableHead>Devre</TableHead>
+                <TableHead />
               </TableRow>
-            )}
-            {data.map((endpoint) => (
-              <TableRow key={endpoint.id}>
-                <TableCell className="font-mono text-sm">{endpoint.url}</TableCell>
-                <TableCell>
-                  {endpoint.olayFiltresi.length === 0 ? (
-                    <span className="text-xs text-muted-foreground">tümü</span>
-                  ) : (
-                    <div className="flex flex-wrap gap-1">
-                      {endpoint.olayFiltresi.map((f) => (
-                        <Badge key={f} variant="outline" className="font-mono text-xs">
-                          {f}
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                </TableCell>
-                <TableCell className="text-sm">{endpoint.retryProfili}</TableCell>
-                <TableCell className="text-sm">
-                  {endpoint.basariOraniSon24Saat === null ? "—" : `%${endpoint.basariOraniSon24Saat.toFixed(0)}`}
-                </TableCell>
-                <TableCell className="text-sm">
-                  <SaglikSkoru
-                    skor={endpoint.saglikSkoru}
-                    uyariAktif={endpoint.saglikUyarisiAktif}
-                    ortalamaGecikmeMs={endpoint.ortalamaGecikmeMs}
-                  />
-                </TableCell>
-                <TableCell>
-                  <DevreDurumRozeti durum={endpoint.devreDurumu} />
-                </TableCell>
-                <TableCell className="flex justify-end gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      setDuzenlenecek(endpoint);
-                      setFormAcik(true);
-                    }}
-                  >
-                    Düzenle
-                  </Button>
-                  {endpoint.devreDurumu === "ACIK" && (
+            </TableHeader>
+            <TableBody>
+              {isLoading && (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center text-muted-foreground">
+                    Yükleniyor…
+                  </TableCell>
+                </TableRow>
+              )}
+              {data?.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center text-muted-foreground">
+                    Henüz endpoint yok.
+                  </TableCell>
+                </TableRow>
+              )}
+              {data?.map((endpoint) => (
+                <TableRow key={endpoint.id}>
+                  <TableCell className="font-mono text-sm">{endpoint.url}</TableCell>
+                  <TableCell>
+                    {endpoint.olayFiltresi.length === 0 ? (
+                      <span className="text-xs text-muted-foreground">tümü</span>
+                    ) : (
+                      <div className="flex flex-wrap gap-1">
+                        {endpoint.olayFiltresi.map((f) => (
+                          <Badge key={f} variant="outline" className="font-mono text-xs">
+                            {f}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    <Badge variant="secondary">{endpoint.retryProfili}</Badge>
+                  </TableCell>
+                  <TableCell className="text-sm tabular-nums">
+                    {endpoint.basariOraniSon24Saat === null ? "—" : `%${endpoint.basariOraniSon24Saat.toFixed(0)}`}
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    <SaglikSkoru
+                      skor={endpoint.saglikSkoru}
+                      uyariAktif={endpoint.saglikUyarisiAktif}
+                      ortalamaGecikmeMs={endpoint.ortalamaGecikmeMs}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <DevreDurumRozeti durum={endpoint.devreDurumu} />
+                  </TableCell>
+                  <TableCell className="flex justify-end gap-2">
                     <Button
                       size="sm"
-                      variant="destructive"
-                      disabled={devreSifirlaMutasyonu.isPending}
-                      onClick={() => devreSifirlaMutasyonu.mutate(endpoint.id)}
+                      variant="outline"
+                      onClick={() => {
+                        setDuzenlenecek(endpoint);
+                        setFormAcik(true);
+                      }}
                     >
-                      Devreyi Sıfırla
+                      <SquarePen className="size-4" />
+                      Düzenle
                     </Button>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      )}
+                    {endpoint.devreDurumu === "ACIK" && (
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        disabled={devreSifirlaMutasyonu.isPending}
+                        onClick={() => devreSifirlaMutasyonu.mutate(endpoint.id)}
+                      >
+                        <RotateCcw className="size-4" />
+                        Devreyi Sıfırla
+                      </Button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
       {uygulama && (
         <EndpointFormDialog
