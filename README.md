@@ -22,10 +22,24 @@ docker-compose.yml
 
 ## Geliştirme ortamı
 
-Önce `gorev-motoru`'nu local `.m2`'ye kurun (bir kere yeterli):
-```bash
-cd ../gorev-motoru && mvn clean install -DskipTests
-```
+`motor-spring-starter` GitHub Packages'tan çekilir (bkz `gorev-motoru` Faz 5.0) — local
+`.m2`'ye elle kurmaya gerek yok, ama Maven'in GitHub Packages'a erişebilmesi için bir kereye
+mahsus kimlik doğrulama gerekir:
+
+1. https://github.com/settings/tokens/new → **Classic token**, scope: `read:packages`
+   (+ `repo`, `gorev-motoru` private olduğu için gerekebilir).
+2. `~/.m2/settings.xml` (yoksa oluştur):
+   ```xml
+   <settings>
+     <servers>
+       <server>
+         <id>github-gorev-motoru</id>
+         <username>KENDI_GITHUB_KULLANICI_ADIN</username>
+         <password>ghp_...</password>
+       </server>
+     </servers>
+   </settings>
+   ```
 
 Sonra:
 ```bash
@@ -38,16 +52,6 @@ cd backend
 mvn spring-boot:run -Dspring-boot.run.profiles=api     # 8080
 mvn spring-boot:run -Dspring-boot.run.profiles=worker   # 8081, ayrı terminalde
 ```
-
-### Neden `backend` Docker'da değil
-
-`motor-spring-starter:0.1.0-SNAPSHOT` henüz hiçbir uzak Maven repository'sinde publish
-edilmedi (bilinçli, `gorev-motoru` Faz 0.6 kararı) — sadece geliştirenin local `.m2`'sinde.
-Bir Docker build container'ı buna erişemiyor, bu yüzden `backend-api`/`backend-worker`
-şimdilik `docker-compose.yml`'de yok; host üzerinde `mvn spring-boot:run` ile çalıştırılıyor
-(tıpkı `gorev-motoru`'nun kendi geliştirme döngüsünde olduğu gibi). GitHub Packages'a publish
-edilince (ileri bir faz) tam containerization'a geçilebilir — `backend/Dockerfile` bu geçişe
-hazır olarak duruyor.
 
 ## Arayüz (dashboard) ne işe yarar, ne test eder
 

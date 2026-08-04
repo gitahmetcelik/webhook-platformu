@@ -20,12 +20,23 @@
         <java.version>21</java.version>
     </properties>
 
+    <!-- motor-spring-starter artik GitHub Packages'ta (bkz gorev-motoru Faz 5.0) - local .m2'ye
+         elle kurulmasina gerek yok. Erisim icin ~/.m2/settings.xml'de "github-gorev-motoru" id'li
+         bir <server> girisi (username = GitHub kullanici adi, password = read:packages yetkili
+         PAT) gerekir - repo README'sinde adimlar var. -->
+    <repositories>
+        <repository>
+            <id>github-gorev-motoru</id>
+            <url>https://maven.pkg.github.com/gitahmetcelik/gorev-motoru</url>
+        </repository>
+    </repositories>
+
     <dependencies>
         <!-- Motor: yürütme katmanı (retry+backoff, DLQ, idempotency, öncelik kuyrukları) -->
         <dependency>
             <groupId>com.gorevplatformu</groupId>
             <artifactId>motor-spring-starter</artifactId>
-            <version>0.1.0-SNAPSHOT</version>
+            <version>0.1.0</version>
         </dependency>
 
         <dependency>
