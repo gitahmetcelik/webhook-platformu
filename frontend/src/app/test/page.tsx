@@ -91,7 +91,11 @@ export default function TestAraciSayfasi() {
             />
           </div>
 
-          <Button onClick={() => gonderMutasyonu.mutate()} disabled={gonderMutasyonu.isPending || !uygulama}>
+          <Button
+            data-tur="test-gonder-buton"
+            onClick={() => gonderMutasyonu.mutate()}
+            disabled={gonderMutasyonu.isPending || !uygulama}
+          >
             <Send className="size-4" />
             {gonderMutasyonu.isPending ? "Gönderiliyor…" : "Gönder"}
           </Button>

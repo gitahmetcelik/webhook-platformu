@@ -5,16 +5,21 @@ export function PageHeader({
   title,
   description,
   action,
+  dataTur,
 }: {
   icon: LucideIcon;
   title: string;
   description?: string;
   action?: React.ReactNode;
+  dataTur?: string;
 }) {
   return (
     <div className="flex items-start justify-between gap-4">
       <div className="flex items-center gap-3">
-        <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        <div
+          data-tur={dataTur}
+          className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+        >
           <Icon className="size-5" />
         </div>
         <div>

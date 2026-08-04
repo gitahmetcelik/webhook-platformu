@@ -35,6 +35,7 @@ export default function OlaylarSayfasi() {
         description="Uygulamanıza gelen event'ler ve tetiklediği teslimatlar"
         action={
           <Input
+            data-tur="olaylar-filtre"
             placeholder="Olay tipine göre filtrele…"
             value={tipFiltresi}
             onChange={(e) => {

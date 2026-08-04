@@ -18,7 +18,12 @@ export default function AuditSayfasi() {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader icon={ClipboardList} title="Audit Log" description="Operasyonel her aksiyonun izi" />
+      <PageHeader
+        icon={ClipboardList}
+        title="Audit Log"
+        description="Operasyonel her aksiyonun izi"
+        dataTur="audit-baslik"
+      />
 
       {isError && <p className="text-sm text-destructive">Audit kayıtları yüklenemedi.</p>}
 

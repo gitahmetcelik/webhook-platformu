@@ -47,6 +47,7 @@ export default function EndpointlerSayfasi() {
         description="Abone endpoint'leriniz, sağlık durumları ve devre kesici"
         action={
           <Button
+            data-tur="endpoint-yeni-buton"
             onClick={() => {
               setDuzenlenecek(undefined);
               setFormAcik(true);

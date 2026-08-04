@@ -86,13 +86,13 @@ export default function AnaSayfa() {
             {uygulama ? uygulama.ad : "—"} uygulamasının teslimat sağlığı
           </p>
         </div>
-        <Link href="/test" className={cn(buttonVariants(), "ml-auto")}>
+        <Link href="/test" data-tur="anasayfa-test-buton" className={cn(buttonVariants(), "ml-auto")}>
           <Send className="size-4" />
           Test Event Gönder
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div data-tur="anasayfa-istatistikler" className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <IstatistikKarti
           icon={Activity}
           etiket="Bu ay teslimat"

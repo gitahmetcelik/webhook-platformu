@@ -110,7 +110,12 @@ export default function KullanimSayfasi() {
       <Card size="sm">
         <CardHeader className="flex-row items-center justify-between">
           <CardTitle>API Anahtarları</CardTitle>
-          <Button size="sm" onClick={() => uretMutasyonu.mutate()} disabled={uretMutasyonu.isPending}>
+          <Button
+            data-tur="kullanim-anahtar-buton"
+            size="sm"
+            onClick={() => uretMutasyonu.mutate()}
+            disabled={uretMutasyonu.isPending}
+          >
             <Key className="size-4" />
             Yeni Anahtar Üret
           </Button>
