@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Activity, BarChart3, ClipboardList, LogOut, Radio, Send, Webhook } from "lucide-react";
+import { Activity, BarChart3, CircleHelp, ClipboardList, LogOut, Radio, Send, Webhook } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/auth-provider";
 import { Button } from "@/components/ui/button";
@@ -57,6 +57,14 @@ export function UstMenu() {
           {organizasyon && (
             <span className="hidden text-sm text-muted-foreground sm:inline">{organizasyon.ad}</span>
           )}
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            title="Tanıtım turunu başlat"
+            onClick={() => window.dispatchEvent(new Event("webhook-platformu:tur-baslat"))}
+          >
+            <CircleHelp className="size-4" />
+          </Button>
           <Button variant="outline" size="sm" onClick={cikisYap}>
             <LogOut className="size-4" />
             Çıkış

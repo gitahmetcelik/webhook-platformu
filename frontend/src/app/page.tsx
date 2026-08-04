@@ -15,18 +15,23 @@ function IstatistikKarti({
   etiket,
   deger,
   vurgu,
+  gecikmeMs = 0,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   etiket: string;
   deger: React.ReactNode;
   vurgu?: "iyi" | "kotu";
+  gecikmeMs?: number;
 }) {
   return (
-    <Card>
+    <Card
+      className="transition-transform duration-200 animate-in fade-in-0 slide-in-from-bottom-1 hover:-translate-y-0.5 hover:shadow-md"
+      style={{ animationDelay: `${gecikmeMs}ms`, animationFillMode: "backwards" }}
+    >
       <CardContent className="flex items-center gap-4">
         <div
           className={
-            "flex size-11 shrink-0 items-center justify-center rounded-lg " +
+            "flex size-11 shrink-0 items-center justify-center rounded-lg transition-transform duration-200 group-hover/card:scale-110 " +
             (vurgu === "kotu"
               ? "bg-destructive/10 text-destructive"
               : vurgu === "iyi"
@@ -93,19 +98,27 @@ export default function AnaSayfa() {
           etiket="Bu ay teslimat"
           deger={organizasyon ? `${organizasyon.buAyKullanim} / ${organizasyon.aylikKota}` : "—"}
           vurgu={kotaOrani >= 90 ? "kotu" : undefined}
+          gecikmeMs={0}
         />
-        <IstatistikKarti icon={Radio} etiket="Toplam endpoint" deger={endpointler?.length ?? "—"} />
+        <IstatistikKarti
+          icon={Radio}
+          etiket="Toplam endpoint"
+          deger={endpointler?.length ?? "—"}
+          gecikmeMs={50}
+        />
         <IstatistikKarti
           icon={ShieldCheck}
           etiket="Açık devre"
           deger={acikDevreSayisi}
           vurgu={acikDevreSayisi > 0 ? "kotu" : "iyi"}
+          gecikmeMs={100}
         />
         <IstatistikKarti
           icon={AlertTriangle}
           etiket="Sağlık uyarısı"
           deger={uyariliEndpointSayisi}
           vurgu={uyariliEndpointSayisi > 0 ? "kotu" : "iyi"}
+          gecikmeMs={150}
         />
       </div>
 

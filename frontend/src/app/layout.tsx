@@ -5,6 +5,8 @@ import { QueryProvider } from "@/components/query-provider";
 import { AuthProvider } from "@/components/auth-provider";
 import { UygulamaProvider } from "@/components/uygulama-provider";
 import { UstMenu } from "@/components/ust-menu";
+import { OnboardingTur } from "@/components/onboarding-tur";
+import { SayfaGecisi } from "@/components/sayfa-gecisi";
 import { Toaster } from "@/components/ui/sonner";
 
 const geistSans = Geist({
@@ -37,7 +39,10 @@ export default function RootLayout({
           <AuthProvider>
             <UygulamaProvider>
               <UstMenu />
-              <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">{children}</main>
+              <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
+                <SayfaGecisi>{children}</SayfaGecisi>
+              </main>
+              <OnboardingTur />
               <Toaster />
             </UygulamaProvider>
           </AuthProvider>
