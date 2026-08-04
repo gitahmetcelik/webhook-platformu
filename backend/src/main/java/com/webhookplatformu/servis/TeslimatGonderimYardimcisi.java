@@ -3,6 +3,7 @@ package com.webhookplatformu.servis;
 import com.webhookplatformu.depo.TeslimatDenemesiRepository;
 import com.webhookplatformu.guvenlik.HmacImzalayici;
 import com.webhookplatformu.guvenlik.SifrelemeServisi;
+import com.webhookplatformu.guvenlik.SsrfKorumaServisi;
 import com.webhookplatformu.varlik.Endpoint;
 import com.webhookplatformu.varlik.Teslimat;
 import com.webhookplatformu.varlik.TeslimatDenemesi;
@@ -37,15 +38,17 @@ public class TeslimatGonderimYardimcisi {
     private final HmacImzalayici hmacImzalayici;
     private final TeslimatDenemesiRepository teslimatDenemesiRepository;
     private final TeslimatMetrikleri teslimatMetrikleri;
+    private final SsrfKorumaServisi ssrfKorumaServisi;
     private final HttpClient httpClient;
 
     public TeslimatGonderimYardimcisi(SifrelemeServisi sifrelemeServisi, HmacImzalayici hmacImzalayici,
                                        TeslimatDenemesiRepository teslimatDenemesiRepository,
-                                       TeslimatMetrikleri teslimatMetrikleri) {
+                                       TeslimatMetrikleri teslimatMetrikleri, SsrfKorumaServisi ssrfKorumaServisi) {
         this.sifrelemeServisi = sifrelemeServisi;
         this.hmacImzalayici = hmacImzalayici;
         this.teslimatDenemesiRepository = teslimatDenemesiRepository;
         this.teslimatMetrikleri = teslimatMetrikleri;
+        this.ssrfKorumaServisi = ssrfKorumaServisi;
         // HTTP_1_1'e SABITLENMIS bilincli: varsayilan (HTTP_2) JDK istemcisi her yeni baglantida
         // once bir h2c (cleartext HTTP/2) yukseltme deniyor - musteri endpoint'leri (neredeyse
         // hicbiri HTTP/2 sunmaz) bu yukseltmeyi 101 ile onaylamayinca istemci govdesiz/bozuk bir
@@ -53,13 +56,30 @@ public class TeslimatGonderimYardimcisi {
         // tekrar yolluyor - bizim tarafimizdan TEK bir deneme olarak gorunse de alici tarafta
         // birden fazla fiziksel istek olarak goruluyor (Faz 5.1 Testcontainers testinde imza
         // dogrulama senaryosunda gercekten yakalandi - govde bos geldigi icin HMAC uyusmuyordu).
+        // followRedirects ACIKCA NEVER - JDK varsayilani zaten bu ama SSRF denetiminde bu
+        // satirin gorunur olmasi onemli (bkz SPEC SS13.C - yonlendirme izlenirse IP kontrolu
+        // atlatilabilir).
         this.httpClient = HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1)
+                .followRedirects(HttpClient.Redirect.NEVER)
                 .connectTimeout(HTTP_ZAMAN_ASIMI).build();
     }
 
     public Sonuc gonderVeKaydet(Teslimat teslimat, Endpoint endpoint, String payloadJson, int denemeNo)
             throws IOException, InterruptedException {
         TeslimatDenemesi deneme = new TeslimatDenemesi(teslimat.getId(), denemeNo);
+
+        // Kayit aninda IP dogru olsa da DNS rebinding ile aradan gecen sure icinde degismis
+        // olabilir - her gonderimden hemen once YENIDEN cozumlenip dogrulanir (SS13.C MUST).
+        try {
+            ssrfKorumaServisi.dogrula(endpoint.getUrl());
+        } catch (SsrfKorumaServisi.SsrfIhlali e) {
+            int sureMs = 0;
+            deneme.hataliSonucla("SSRF engellendi: " + e.getMessage(), null, sureMs);
+            teslimatDenemesiRepository.save(deneme);
+            teslimatMetrikleri.denemeSuresiKaydet("kalici_hata", Duration.ZERO);
+            return new Sonuc(SonucTuru.KALICI_HATA, null, null);
+        }
+
         String secret = sifrelemeServisi.cozumle(endpoint.getImzaSecret());
         byte[] govde = payloadJson.getBytes(StandardCharsets.UTF_8);
         HmacImzalayici.ImzaBasliklari imza = hmacImzalayici.imzala(secret, govde);

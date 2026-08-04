@@ -46,6 +46,14 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  --color-durum-iyi: var(--durum-iyi);
+  --color-durum-uyari: var(--durum-uyari);
+  --color-durum-ciddi: var(--durum-ciddi);
+  --color-durum-kritik: var(--durum-kritik);
+  --color-seri-1: var(--seri-1);
+  --color-seri-2: var(--seri-2);
+  --color-seri-3: var(--seri-3);
 }
 
 :root {
@@ -81,6 +89,37 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  /* Durum — SABİT, tema ile değişmez, asla seri rengi olarak kullanılmaz (§7.2) */
+  --durum-iyi: #0ca30c;
+  --durum-uyari: #fab219;
+  --durum-ciddi: #ec835a;
+  --durum-kritik: #d03b3b;
+
+  /* Grafik serileri — açık tema */
+  --seri-1: #2a78d6;
+  --seri-2: #eb6834;
+  --seri-3: #1baf7a;
+
+  /* Hareket */
+  --sure-anlik: 80ms;
+  --sure-hizli: 140ms;
+  --sure-temel: 200ms;
+  --sure-yavas: 320ms;
+  --sure-cok-yavas: 480ms;
+  --egri-standart: cubic-bezier(0.2, 0, 0, 1);
+  --egri-yavaslayan: cubic-bezier(0, 0, 0, 1);
+  --egri-hizlanan: cubic-bezier(0.3, 0, 1, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --sure-anlik: 0ms;
+    --sure-hizli: 0ms;
+    --sure-temel: 0ms;
+    --sure-yavas: 0ms;
+    --sure-cok-yavas: 0ms;
+  }
 }
 
 .dark {
@@ -115,6 +154,31 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+
+  --seri-1: #3987e5;
+  --seri-2: #d95926;
+  --seri-3: #199e70;
+  /* durum renkleri değişmez — dört renk de koyu yüzeyde ≥3:1 */
+}
+
+.tur-maske-delik {
+  transition:
+    x var(--sure-yavas) var(--egri-standart),
+    y var(--sure-yavas) var(--egri-standart),
+    width var(--sure-yavas) var(--egri-standart),
+    height var(--sure-yavas) var(--egri-standart);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tur-maske-delik {
+    transition: none;
+  }
+}
+
+@keyframes sparkline-cizim {
+  to {
+    stroke-dashoffset: 0;
+  }
 }
 
 @layer base {

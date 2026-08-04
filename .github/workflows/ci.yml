@@ -45,3 +45,37 @@ jobs:
         env:
           GH_PACKAGES_KULLANICI: ${{ github.repository_owner }}
           GH_PACKAGES_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
+
+  frontend-testleri:
+    # VARSAYIM (§16 MUST): tam is akisi (npm run test + npx playwright test) FAZ E'de
+    # eklenecek - henuz vitest/playwright test dosyasi yok, bos suite CI'i yanlis yesile
+    # cikarir. Simdilik derleme dogrulugu + FE-B6 tur-anchor-denetimi guard'i burada.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Bagimliliklari kur
+        working-directory: frontend
+        run: npm ci
+
+      - name: Lint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Tip kontrolu
+        working-directory: frontend
+        run: npx tsc --noEmit
+
+      - name: Tur anchor denetimi
+        working-directory: frontend
+        run: npm run tur-anchor-denetimi
+
+      - name: Build
+        working-directory: frontend
+        run: npm run build

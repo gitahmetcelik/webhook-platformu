@@ -86,7 +86,7 @@ export default function OlaylarSayfasi() {
                     <TableCell className="font-mono text-sm">{olay.tip}</TableCell>
                     <TableCell className="font-mono text-xs text-muted-foreground">{olay.disKaynakId}</TableCell>
                     <TableCell>
-                      <div className="flex flex-wrap items-center gap-2">
+                      <div data-tur="olaylar-teslimat-ozeti" className="flex flex-wrap items-center gap-2">
                         <Badge variant={basarili === toplam ? "default" : "secondary"}>
                           {basarili}/{toplam} başarılı
                         </Badge>
