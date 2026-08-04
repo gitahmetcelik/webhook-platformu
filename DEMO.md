@@ -3,6 +3,11 @@
 Bu senaryo ürünün asıl iddiasını gösterir: **teslimat başarısız olduğunda ne oluyor.**
 Baştan sona yalnızca dashboard kullanılır — terminale tek bir komut için bile dönülmez.
 
+![Demo akışı](docs/gorseller/demo-akisi.gif)
+
+*(Yukarıdaki kayıt `docker-compose.prod.yml` ile ayağa kaldırılmış gerçek bir kurulumda
+alındı: giriş → mutlu yol → alıcı bozulur → retry merdiveni → endpoint sağlığı → audit.)*
+
 **Ön koşul:** README'deki "5 dakikada ayağa kaldır" adımları tamamlanmış, `/giris`'ten API
 anahtarıyla giriş yapılmış olmalı.
 
