@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { TemaSaglayici } from "@/components/tema-saglayici";
 import { QueryProvider } from "@/components/query-provider";
 import { AuthProvider } from "@/components/auth-provider";
 import { UygulamaProvider } from "@/components/uygulama-provider";
@@ -33,20 +34,23 @@ export default function RootLayout({
     <html
       lang="tr"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
       <body className="flex min-h-full flex-col bg-muted/20">
-        <QueryProvider>
-          <AuthProvider>
-            <UygulamaProvider>
-              <UstMenu />
-              <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
-                <SayfaGecisi>{children}</SayfaGecisi>
-              </main>
-              <OnboardingTur />
-              <Toaster />
-            </UygulamaProvider>
-          </AuthProvider>
-        </QueryProvider>
+        <TemaSaglayici>
+          <QueryProvider>
+            <AuthProvider>
+              <UygulamaProvider>
+                <UstMenu />
+                <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
+                  <SayfaGecisi>{children}</SayfaGecisi>
+                </main>
+                <OnboardingTur />
+                <Toaster />
+              </UygulamaProvider>
+            </AuthProvider>
+          </QueryProvider>
+        </TemaSaglayici>
       </body>
     </html>
   );

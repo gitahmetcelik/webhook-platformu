@@ -6,6 +6,7 @@ import { Activity, BarChart3, CircleHelp, ClipboardList, LogOut, Radio, Send, We
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/auth-provider";
 import { Button } from "@/components/ui/button";
+import { TemaAnahtari } from "@/components/tema-anahtari";
 
 const baglantilar = [
   { href: "/olaylar", etiket: "Olaylar", icon: Activity },
@@ -56,11 +57,18 @@ export function UstMenu() {
         </nav>
         <div className="ml-auto flex items-center gap-3">
           {organizasyon && (
-            <span className="hidden text-sm text-muted-foreground sm:inline">{organizasyon.ad}</span>
+            <span
+              data-tur="menu-organizasyon"
+              className="hidden text-sm text-muted-foreground sm:inline"
+            >
+              {organizasyon.ad}
+            </span>
           )}
+          <TemaAnahtari />
           <Button
             variant="ghost"
             size="icon-sm"
+            data-tur="menu-yardim"
             title="Tanıtım turunu başlat"
             onClick={() => window.dispatchEvent(new Event("webhook-platformu:tur-baslat"))}
           >

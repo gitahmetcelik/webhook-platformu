@@ -1,11 +1,18 @@
+import { CheckCircle2, RotateCw, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { DevreDurumu } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-const RENKLER: Record<DevreDurumu, string> = {
-  KAPALI: "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300",
-  YARI_ACIK: "bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300",
-  ACIK: "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300",
+const STILLER: Record<DevreDurumu, string> = {
+  KAPALI: "bg-durum-iyi/10 text-durum-iyi",
+  YARI_ACIK: "bg-durum-uyari/15 text-durum-uyari",
+  ACIK: "bg-durum-kritik/10 text-durum-kritik",
+};
+
+const IKONLAR: Record<DevreDurumu, typeof CheckCircle2> = {
+  KAPALI: CheckCircle2,
+  YARI_ACIK: RotateCw,
+  ACIK: XCircle,
 };
 
 const ETIKETLER: Record<DevreDurumu, string> = {
@@ -15,5 +22,11 @@ const ETIKETLER: Record<DevreDurumu, string> = {
 };
 
 export function DevreDurumRozeti({ durum, className }: { durum: DevreDurumu; className?: string }) {
-  return <Badge className={cn(RENKLER[durum], "border-none", className)}>{ETIKETLER[durum]}</Badge>;
+  const Icon = IKONLAR[durum];
+  return (
+    <Badge className={cn(STILLER[durum], "gap-1 border-none", className)}>
+      <Icon className="size-3.5" aria-hidden="true" />
+      {ETIKETLER[durum]}
+    </Badge>
+  );
 }
